@@ -14,7 +14,7 @@ import octoprint.plugin
 class PreprintservicePlugin(octoprint.plugin.StartupPlugin,
 							octoprint.plugin.SettingsPlugin,
 							octoprint.plugin.AssetPlugin,
-                            octoprint.plugin.TemplatePlugin):
+							octoprint.plugin.TemplatePlugin):
 
 	def on_after_startup(self):
 		self._logger.info("Hello from the PrePrintService plugin! (more: %s)" % self._settings.get(["url"]))
@@ -25,7 +25,7 @@ class PreprintservicePlugin(octoprint.plugin.StartupPlugin,
 	def get_template_vars(self):
 		return dict(url=self._settings.get(["url"]))
 
-	##~~ AssetPlugin mixin
+	# ~~ AssetPlugin mixin
 
 	def get_assets(self):
 		# Define your plugin's asset files to automatically include in the
