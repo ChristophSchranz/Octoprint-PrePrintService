@@ -17,13 +17,13 @@ class PreprintservicePlugin(octoprint.plugin.StartupPlugin,
                             octoprint.plugin.TemplatePlugin):
 
 	def on_after_startup(self):
-		self._logger.info("Hello World!")
+		self._logger.info("Hello from the PrePrintService plugin! (more: %s)" % self._settings.get(["url"]))
 
-	##~~ SettingsPlugin mixin
 	def get_settings_defaults(self):
-		return dict(
-			# put your plugin's default settings here
-		)
+		return dict(url="http://localhost:2304/")
+
+	def get_template_vars(self):
+		return dict(url=self._settings.get(["url"]))
 
 	##~~ AssetPlugin mixin
 
