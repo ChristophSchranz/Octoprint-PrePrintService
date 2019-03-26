@@ -16,7 +16,7 @@ from octoprint.util.paths import normalize as normalize_path
 
 from .profile import Profile
 
-blueprint = flask.Blueprint("plugin.slic3r", __name__)
+blueprint = flask.Blueprint("plugin.preprintservice", __name__)
 
 ### (Don't forget to remove me)
 # This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
@@ -25,7 +25,6 @@ blueprint = flask.Blueprint("plugin.slic3r", __name__)
 # as necessary.
 #
 # Take a look at the documentation on what other plugin mixins are available.
-
 
 
 class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
@@ -43,13 +42,14 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 	def get_settings_defaults(self):
 		return dict(url="http://localhost:2304/",
 					slic3r_engine=normalize_path("/usr/bin/slic3r"),
-					default_profile=None,
+					default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default_slic3r_profile.ini"),
 					debug_logging=True
 					)
 
 	# ~~ SettingsPlugin mixin
 
 	def on_settings_save(self, data):
+		self._logger.info("on_settings_save")
 		old_debug_logging = self._settings.get_boolean(["debug_logging"])
 
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
@@ -103,6 +103,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 	def importSlic3rProfile(self):
 		import datetime
 		import tempfile
+		self._logger.info("importSlic3rProfile")
 
 		input_name = "file"
 		input_upload_name = input_name + "." + self._settings.global_get(["server", "uploads", "nameSuffix"])
@@ -156,9 +157,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			from octoprint.server.api import valid_boolean_trues
 			profile_allow_overwrite = flask.request.values["allowOverwrite"] in valid_boolean_trues
 
-		self._slicing_manager.save_profile("slic3r",
-										   profile_name,
-										   profile_dict,
+		self._slicing_manager.save_profile("slic3r",  profile_name, profile_dict,
 										   allow_overwrite=profile_allow_overwrite,
 										   display_name=profile_display_name,
 										   description=profile_description)
@@ -181,6 +180,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		return True
 
 	def get_slicer_properties(self):
+		self._logger.info("get_slicer_properties")
 		return dict(
 			type="PrePrintService",
 			name="PrePrintService",
@@ -189,14 +189,15 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		)
 
 	def get_slicer_default_profile(self):
+		self._logger.info("get_slicer_default_profile")
 		path = self._settings.get(["default_profile"])
 		if not path:
 			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default_slic3r_profile.ini")
 		return self.get_slicer_profile(path)
 
 	def get_slicer_profile(self, path):
+		self._logger.info("get_slicer_profile")
 		profile_dict, display_name, description = self._load_profile(path)
-
 		properties = self.get_slicer_properties()
 		return octoprint.slicing.SlicingProfile(properties["type"], "unknown", profile_dict, display_name=display_name,
 												description=description)
@@ -307,7 +308,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 				if machinecode_path in self._slicing_commands:
 					del self._slicing_commands[machinecode_path]
 
-			self._slic3r_logger.info("-" * 40)
+			self._logger.info("-" * 40)
 
 	def cancel_slicing(self, machinecode_path):
 		with self._slicing_commands_mutex:
@@ -320,7 +321,6 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 	def _load_profile(self, path):
 		profile, display_name, description = Profile.from_slic3r_ini(path)
 		return profile, display_name, description
-		# return None, None, None
 
 	def _save_profile(self, path, profile, allow_overwrite=True, display_name=None, description=None):
 		if not allow_overwrite and os.path.exists(path):
