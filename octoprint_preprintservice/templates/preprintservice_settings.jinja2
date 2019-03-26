@@ -11,7 +11,7 @@
 
 
 
-<div id="settings_plugin_slic3r_dialog" data-bind="allowBindings: true">
+<div id="settings_plugin_preprintservice_dialog" data-bind="allowBindings: true">
     <h4>{{ _('Profiles') }}</h4>
 
     <div class="pull-right">
@@ -20,16 +20,16 @@
     <table class="table table-striped table-hover table-condensed table-hover">
         <thead>
         <tr>
-            <th class="settings_plugin_slic3r_profiles_key">{{ _('Identifier') }}</th>
-            <th class="settings_plugin_slic3r_profiles_name">{{ _('Name') }}</th>
-            <th class="settings_plugin_slic3r_profiles_actions">{{ _('Actions') }}</th>
+            <th class="settings_plugin_preprintservice_profiles_key">{{ _('Identifier') }}</th>
+            <th class="settings_plugin_preprintservice_profiles_name">{{ _('Name') }}</th>
+            <th class="settings_plugin_preprintservice_profiles_actions">{{ _('Actions') }}</th>
         </tr>
         </thead>
         <tbody data-bind="foreach: profiles.paginatedItems">
             <tr data-bind="attr: {title: description}">
-                <td class="settings_plugin_slic3r_profiles_key"><span class="icon-star" data-bind="invisible: !isdefault()"></span> <span data-bind="text: key"></span></td>
-                <td class="settings_plugin_slic3r_profiles_name" data-bind="text: name"></td>
-                <td class="settings_plugin_slic3r_profiles_actions">
+                <td class="settings_plugin_preprintservice_profiles_key"><span class="icon-star" data-bind="invisible: !isdefault()"></span> <span data-bind="text: key"></span></td>
+                <td class="settings_plugin_preprintservice_profiles_name" data-bind="text: name"></td>
+                <td class="settings_plugin_preprintservice_profiles_actions">
                     <a href="#" class="icon-star" title="{{ _('Make default') }}" data-bind="enable: !isdefault(), css: {disabled: isdefault()}, click: function() { if (!$data.isdefault()) { $root.makeProfileDefault($data); } }"></a>&nbsp;|&nbsp;<a href="#" class="icon-trash" title="{{ _('Delete Profile') }}" data-bind="enable: !isdefault(), css: {disabled: isdefault()}, click: function() { if (!$data.isdefault()) { $root.removeProfile($data); } }"></a>
                 </td>
             </tr>
@@ -49,7 +49,7 @@
 
     <button class="btn pull-right" data-bind="click: function() { $root.showImportProfileDialog() }">{{ _('Import Profile...') }}</button>
 
-    <div id="settings_plugin_slic3r_import" class="modal hide fade">
+    <div id="settings_plugin_preprintservice_import" class="modal hide fade">
         <div class="modal-header">
             <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
             <h3>{{ _('Import Existing Slic3r Profile') }}</h3>
@@ -62,7 +62,7 @@
                         <div class="input-prepend">
                     <span class="btn fileinput-button">
                         <span>{{ _('Browse...') }}</span>
-                        <input id="settings-slic3r-import" type="file" name="file" data-url="{{ url_for("plugin.preprintservice.importSlic3rProfile") }}">
+                        <input id="settings-preprintservice-import" type="file" name="file" data-url="{{ url_for("plugin.preprintservice.importSlic3rProfile") }}">
                     </span>
                             <span class="add-on" data-bind="text: fileName"></span>
                         </div>
@@ -97,7 +97,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn" data-dismiss="modal" aria-hidden="true">{{ _('Abort') }}</button>
-            <button class="btn btn-primary" id="settings-slic3r-import-start">{{ _('Confirm') }}</button>
+            <button class="btn btn-primary" id="settings-preprintservice-import-start">{{ _('Confirm') }}</button>
         </div>
     </div>
 </div>

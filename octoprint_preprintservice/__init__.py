@@ -157,13 +157,13 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			from octoprint.server.api import valid_boolean_trues
 			profile_allow_overwrite = flask.request.values["allowOverwrite"] in valid_boolean_trues
 
-		self._slicing_manager.save_profile("slic3r",  profile_name, profile_dict,
+		self._slicing_manager.save_profile("preprintservice",  profile_name, profile_dict,
 										   allow_overwrite=profile_allow_overwrite,
 										   display_name=profile_display_name,
 										   description=profile_description)
 
 		result = dict(
-			resource=flask.url_for("api.slicingGetSlicerProfile", slicer="slic3r", name=profile_name,
+			resource=flask.url_for("api.slicingGetSlicerProfile", slicer="preprintservice", name=profile_name,
 								   external=True),
 			displayName=profile_display_name,
 			description=profile_description
@@ -175,16 +175,15 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 	##~~ SlicerPlugin API
 
 	def is_slicer_configured(self):
-		#slic3r_engine = normalize_path(self._settings.get(["slic3r_engine"]))
-		# return slic3r_engine is not None and os.path.exists(slic3r_engine)
-		return True
+		slic3r_engine = normalize_path(self._settings.get(["slic3r_engine"]))
+		return slic3r_engine is not None and os.path.exists(slic3r_engine)
+		# return True
 
 	def get_slicer_properties(self):
-		self._logger.info("get_slicer_properties")
 		return dict(
-			type="PrePrintService",
+			type="preprintservice",
 			name="PrePrintService",
-			same_device=True,
+			same_device=False,
 			progress_report=False
 		)
 
@@ -196,9 +195,9 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		return self.get_slicer_profile(path)
 
 	def get_slicer_profile(self, path):
-		self._logger.info("get_slicer_profile")
 		profile_dict, display_name, description = self._load_profile(path)
 		properties = self.get_slicer_properties()
+		# self._logger.info("get_slicer_profile: {}".format(profile_dict))
 		return octoprint.slicing.SlicingProfile(properties["type"], "unknown", profile_dict, display_name=display_name,
 												description=description)
 
