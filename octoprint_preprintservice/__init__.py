@@ -8,6 +8,7 @@ import os
 import re
 import json
 import flask
+import requests
 from collections import defaultdict
 from pkg_resources import parse_version
 
@@ -33,6 +34,13 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 							octoprint.plugin.AssetPlugin,
 							octoprint.plugin.BlueprintPlugin,
 							octoprint.plugin.TemplatePlugin):
+	# def __init__(self):
+		# setup job tracking across threads
+		# import threading
+		# self._slicing_commands = dict()
+		# self._slicing_commands_mutex = threading.Lock()
+		# self._cancelled_jobs = []
+		# self._cancelled_jobs_mutex = threading.Lock()
 
 	# ~~ StartupPlugin API
 
@@ -232,90 +240,106 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		self._logger.info(
 			"### Slicing %s to %s using profile stored at %s" % (model_path, machinecode_path, profile_path))
 
-		executable = normalize_path(self._settings.get(["slic3r_engine"]))
-		if not executable:
-			self._logger.info("No Slic3r found")
-			return False, "Path to Slic3r is not configured "
+		# executable = normalize_path(self._settings.get(["slic3r_engine"]))
+		# if not executable:
+		# 	self._logger.info("No Slic3r found")
+		# 	return False, "Path to Slic3r is not configured "
+		#
+		# import sarge
+		#
+		# working_dir, _ = os.path.split(executable)
+		# args = ['"%s"' % executable, '--load', '"%s"' % profile_path, '--print-center', '"%f,%f"' % (posX, posY), '-o',
+		# 		'"%s"' % machinecode_path, '"%s"' % model_path]
+		#
+		# command = " ".join(args)
+		# self._logger.info("Running %r in %s" % (command, working_dir))
+		# try:
+		# 	if parse_version(sarge.__version__) >= parse_version(
+		# 			'0.1.5'):  # Because in version 0.1.5 the name was changed in sarge.
+		# 		async_kwarg = 'async_'
+		# 	else:
+		# 		async_kwarg = 'async'
+		# 	p = sarge.run(command, cwd=working_dir, stdout=sarge.Capture(), stderr=sarge.Capture(),
+		# 				  **{async_kwarg: True})
+		# 	p.wait_events()
+		# 	try:
+		# 		with self._slicing_commands_mutex:
+		# 			self._slicing_commands[machinecode_path] = p.commands[0]
+		#
+		# 		line_seen = False
+		# 		while p.returncode is None:
+		# 			stdout_line = p.stdout.readline(timeout=0.5)
+		# 			stderr_line = p.stderr.readline(timeout=0.5)
+		#
+		# 			if not stdout_line and not stderr_line:
+		# 				if line_seen:
+		# 					break
+		# 				else:
+		# 					continue
+		#
+		# 			line_seen = True
+		# 			if stdout_line:
+		# 				self._logger.debug("stdout: " + stdout_line.strip())
+		# 			if stderr_line:
+		# 				self._logger.debug("stderr: " + stderr_line.strip())
+		# 	finally:
+		# 		p.close()
+		#
+		# 	with self._cancelled_jobs_mutex:
+		# 		if machinecode_path in self._cancelled_jobs:
+		# 			self._logger.info("### Cancelled")
+		# 			raise octoprint.slicing.SlicingCancelled()
+		#
+		# 	self._logger.info("### Finished, returncode %d" % p.returncode)
+		# 	if p.returncode == 0:
+		# 		analysis = get_analysis_from_gcode(machinecode_path)
+		# 		self._logger.info("Analysis found in gcode: %s" % str(analysis))
+		# 		if analysis:
+		# 			analysis = {'analysis': analysis}
+		# 		return True, analysis
+		# 	else:
+		# 		self._logger.warn("Could not slice via Slic3r, got return code %r" % p.returncode)
+		# 		return False, "Got returncode %r" % p.returncode
+		#
+		# except octoprint.slicing.SlicingCancelled as e:
+		# 	raise e
+		# except:
+		# 	self._logger.exception("Could not slice via Slic3r, got an unknown error")
+		# 	return False, "Unknown error, please consult the log file"
 
-		import sarge
+		# try:
+		url = self._settings.get(["url"]) + 'upload-octoprint'
+		self._logger.info("Sending file and profile to {}".format(url))
+		files = {'model': open(model_path, 'rb'),
+				 'profile': open(profile_path, 'rb')}
+		r = requests.post(url, files=files,
+						  data={"machinecode_name": machinecode_path.split(os.sep)[-1]})
+		self._logger.info("POST to service with {}".format(r.status_code))
+		print(r.text)
 
-		working_dir, _ = os.path.split(executable)
-		args = ['"%s"' % executable, '--load', '"%s"' % profile_path, '--print-center', '"%f,%f"' % (posX, posY), '-o',
-				'"%s"' % machinecode_path, '"%s"' % model_path]
+		print("\n\n")
+		print(files)
+		print({"machinecode_name": machinecode_path.split(os.sep)[-1]})
 
-		command = " ".join(args)
-		self._logger.info("Running %r in %s" % (command, working_dir))
-		try:
-			if parse_version(sarge.__version__) >= parse_version(
-					'0.1.5'):  # Because in version 0.1.5 the name was changed in sarge.
-				async_kwarg = 'async_'
-			else:
-				async_kwarg = 'async'
-			p = sarge.run(command, cwd=working_dir, stdout=sarge.Capture(), stderr=sarge.Capture(),
-						  **{async_kwarg: True})
-			p.wait_events()
-			try:
-				with self._slicing_commands_mutex:
-					self._slicing_commands[machinecode_path] = p.commands[0]
+		# except Exception as e:
+		# 	pass
+		# finally:
+		# 	with self._cancelled_jobs_mutex:
+		# 		if machinecode_path in self._cancelled_jobs:
+		# 			self._cancelled_jobs.remove(machinecode_path)
+		# 	with self._slicing_commands_mutex:
+		# 		if machinecode_path in self._slicing_commands:
+		# 			del self._slicing_commands[machinecode_path]
 
-				line_seen = False
-				while p.returncode is None:
-					stdout_line = p.stdout.readline(timeout=0.5)
-					stderr_line = p.stderr.readline(timeout=0.5)
+		self._logger.info("-" * 40)
 
-					if not stdout_line and not stderr_line:
-						if line_seen:
-							break
-						else:
-							continue
-
-					line_seen = True
-					if stdout_line:
-						self._logger.debug("stdout: " + stdout_line.strip())
-					if stderr_line:
-						self._logger.debug("stderr: " + stderr_line.strip())
-			finally:
-				p.close()
-
-			with self._cancelled_jobs_mutex:
-				if machinecode_path in self._cancelled_jobs:
-					self._logger.info("### Cancelled")
-					raise octoprint.slicing.SlicingCancelled()
-
-			self._logger.info("### Finished, returncode %d" % p.returncode)
-			if p.returncode == 0:
-				analysis = get_analysis_from_gcode(machinecode_path)
-				self._logger.info("Analysis found in gcode: %s" % str(analysis))
-				if analysis:
-					analysis = {'analysis': analysis}
-				return True, analysis
-			else:
-				self._logger.warn("Could not slice via Slic3r, got return code %r" % p.returncode)
-				return False, "Got returncode %r" % p.returncode
-
-		except octoprint.slicing.SlicingCancelled as e:
-			raise e
-		except:
-			self._logger.exception("Could not slice via Slic3r, got an unknown error")
-			return False, "Unknown error, please consult the log file"
-
-		finally:
-			with self._cancelled_jobs_mutex:
-				if machinecode_path in self._cancelled_jobs:
-					self._cancelled_jobs.remove(machinecode_path)
-			with self._slicing_commands_mutex:
-				if machinecode_path in self._slicing_commands:
-					del self._slicing_commands[machinecode_path]
-
-			self._logger.info("-" * 40)
-
-	def cancel_slicing(self, machinecode_path):
-		with self._slicing_commands_mutex:
-			if machinecode_path in self._slicing_commands:
-				with self._cancelled_jobs_mutex:
-					self._cancelled_jobs.append(machinecode_path)
-				self._slicing_commands[machinecode_path].terminate()
-				self._logger.info("Cancelled slicing of %s" % machinecode_path)
+	# def cancel_slicing(self, machinecode_path):
+	# 	with self._slicing_commands_mutex:
+	# 		if machinecode_path in self._slicing_commands:
+	# 			with self._cancelled_jobs_mutex:
+	# 				self._cancelled_jobs.append(machinecode_path)
+	# 			self._slicing_commands[machinecode_path].terminate()
+	# 			self._logger.info("Cancelled slicing of %s" % machinecode_path)
 
 	def _load_profile(self, path):
 		profile, display_name, description = Profile.from_slic3r_ini(path)
