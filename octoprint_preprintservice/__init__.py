@@ -225,6 +225,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			profile_path = self._settings.get(["default_profile"])
 
 		print("\n\n")
+		print(self._slicing_commands.items())
 		print(open(machinecode_path).read())
 		# print(self.get_slicer_profile(profile_path))
 		profile_dict, display_name, description = self._load_profile(profile_path)
@@ -233,7 +234,14 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 		# if not machinecode_path:
 		path, _ = os.path.splitext(model_path)
-		machinecode_path = path + "_" + display_name.split("\n")[0] + ".gcode"
+		machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
+
+		# with self._slicing_commands_mutex:
+		# 	self._logger.info("machine_code {}".format(machinecode_path))
+		# 	self._logger.info("self._slicing_commands: {}".format(self._slicing_commands.items()))
+		# 	self._slicing_commands[machinecode_path] = machinecode_path
+		# 	self._logger.info("self._slicing_commands_mutex: {}".format(self._slicing_commands_mutex))
+		# 	self._logger.info("self._slicing_commands: {}".format(self._slicing_commands.items()))
 
 		# if position and isinstance(position, dict) and "x" in position and "y" in position:
 		# 	posX = position["x"]
@@ -274,7 +282,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 		print(files)
 		print({"machinecode_name": machinecode_path.split(os.sep)[-1]})
-		print("\n\n")
+		print("\n")
 
 		with self._cancelled_jobs_mutex:
 			if machinecode_path in self._cancelled_jobs:
@@ -291,9 +299,12 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 		with self._cancelled_jobs_mutex:
 			if machinecode_path in self._cancelled_jobs:
+				self._logger.info("machine code in job mutex")
 				self._cancelled_jobs.remove(machinecode_path)
 		with self._slicing_commands_mutex:
 			if machinecode_path in self._slicing_commands:
+				self._logger.info("machine code in slicing mutex")
+				print(self._slicing_commands.items())
 				del self._slicing_commands[machinecode_path]
 
 		self._logger.info("-" * 40)
