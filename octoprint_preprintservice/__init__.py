@@ -34,13 +34,13 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 							octoprint.plugin.AssetPlugin,
 							octoprint.plugin.BlueprintPlugin,
 							octoprint.plugin.TemplatePlugin):
-	# def __init__(self):
+	def __init__(self):
 		# setup job tracking across threads
-		# import threading
-		# self._slicing_commands = dict()
-		# self._slicing_commands_mutex = threading.Lock()
-		# self._cancelled_jobs = []
-		# self._cancelled_jobs_mutex = threading.Lock()
+		import threading
+		self._slicing_commands = dict()
+		self._slicing_commands_mutex = threading.Lock()
+		self._cancelled_jobs = []
+		self._cancelled_jobs_mutex = threading.Lock()
 
 	# ~~ StartupPlugin API
 
@@ -172,7 +172,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 		result = dict(
 			resource=flask.url_for("api.slicingGetSlicerProfile", slicer="preprintservice", name=profile_name,
-								   external=True),
+								   external=False),
 			displayName=profile_display_name,
 			description=profile_description
 		)
@@ -223,123 +223,88 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 				 on_progress=None, on_progress_args=None, on_progress_kwargs=None):
 		if not profile_path:
 			profile_path = self._settings.get(["default_profile"])
-		if not machinecode_path:
-			path, _ = os.path.splitext(model_path)
-			machinecode_path = path + ".gco"
 
-		if position and isinstance(position, dict) and "x" in position and "y" in position:
-			posX = position["x"]
-			posY = position["y"]
-		elif printer_profile["volume"]["formFactor"] == "circular" or printer_profile["volume"]["origin"] == "center":
-			posX = 0
-			posY = 0
-		else:
-			posX = printer_profile["volume"]["width"] / 2.0
-			posY = printer_profile["volume"]["depth"] / 2.0
+		print("\n\n")
+		print(open(machinecode_path).read())
+		# print(self.get_slicer_profile(profile_path))
+		profile_dict, display_name, description = self._load_profile(profile_path)
+		# print(display_name)
+		print("\n\n")
+
+		# if not machinecode_path:
+		path, _ = os.path.splitext(model_path)
+		machinecode_path = path + "_" + display_name.split("\n")[0] + ".gcode"
+
+		# if position and isinstance(position, dict) and "x" in position and "y" in position:
+		# 	posX = position["x"]
+		# 	posY = position["y"]
+		# elif printer_profile["volume"]["formFactor"] == "circular" or printer_profile["volume"]["origin"] == "center":
+		# 	posX = 0
+		# 	posY = 0
+		# else:
+		# 	posX = printer_profile["volume"]["width"] / 2.0
+		# 	posY = printer_profile["volume"]["depth"] / 2.0
 
 		self._logger.info(
 			"### Slicing %s to %s using profile stored at %s" % (model_path, machinecode_path, profile_path))
 
-		# executable = normalize_path(self._settings.get(["slic3r_engine"]))
-		# if not executable:
-		# 	self._logger.info("No Slic3r found")
-		# 	return False, "Path to Slic3r is not configured "
-		#
-		# import sarge
-		#
-		# working_dir, _ = os.path.split(executable)
-		# args = ['"%s"' % executable, '--load', '"%s"' % profile_path, '--print-center', '"%f,%f"' % (posX, posY), '-o',
-		# 		'"%s"' % machinecode_path, '"%s"' % model_path]
-		#
-		# command = " ".join(args)
-		# self._logger.info("Running %r in %s" % (command, working_dir))
-		# try:
-		# 	if parse_version(sarge.__version__) >= parse_version(
-		# 			'0.1.5'):  # Because in version 0.1.5 the name was changed in sarge.
-		# 		async_kwarg = 'async_'
-		# 	else:
-		# 		async_kwarg = 'async'
-		# 	p = sarge.run(command, cwd=working_dir, stdout=sarge.Capture(), stderr=sarge.Capture(),
-		# 				  **{async_kwarg: True})
-		# 	p.wait_events()
-		# 	try:
-		# 		with self._slicing_commands_mutex:
-		# 			self._slicing_commands[machinecode_path] = p.commands[0]
-		#
-		# 		line_seen = False
-		# 		while p.returncode is None:
-		# 			stdout_line = p.stdout.readline(timeout=0.5)
-		# 			stderr_line = p.stderr.readline(timeout=0.5)
-		#
-		# 			if not stdout_line and not stderr_line:
-		# 				if line_seen:
-		# 					break
-		# 				else:
-		# 					continue
-		#
-		# 			line_seen = True
-		# 			if stdout_line:
-		# 				self._logger.debug("stdout: " + stdout_line.strip())
-		# 			if stderr_line:
-		# 				self._logger.debug("stderr: " + stderr_line.strip())
-		# 	finally:
-		# 		p.close()
-		#
-		# 	with self._cancelled_jobs_mutex:
-		# 		if machinecode_path in self._cancelled_jobs:
-		# 			self._logger.info("### Cancelled")
-		# 			raise octoprint.slicing.SlicingCancelled()
-		#
-		# 	self._logger.info("### Finished, returncode %d" % p.returncode)
-		# 	if p.returncode == 0:
-		# 		analysis = get_analysis_from_gcode(machinecode_path)
-		# 		self._logger.info("Analysis found in gcode: %s" % str(analysis))
-		# 		if analysis:
-		# 			analysis = {'analysis': analysis}
-		# 		return True, analysis
-		# 	else:
-		# 		self._logger.warn("Could not slice via Slic3r, got return code %r" % p.returncode)
-		# 		return False, "Got returncode %r" % p.returncode
-		#
-		# except octoprint.slicing.SlicingCancelled as e:
-		# 	raise e
-		# except:
-		# 	self._logger.exception("Could not slice via Slic3r, got an unknown error")
-		# 	return False, "Unknown error, please consult the log file"
-
-		# try:
+		# Try connection to PrePrintService
 		url = self._settings.get(["url"]) + 'upload-octoprint'
-		self._logger.info("Sending file and profile to {}".format(url))
-		files = {'model': open(model_path, 'rb'),
-				 'profile': open(profile_path, 'rb')}
-		r = requests.post(url, files=files,
-						  data={"machinecode_name": machinecode_path.split(os.sep)[-1]})
-		self._logger.info("POST to service with {}".format(r.status_code))
-		print(r.text)
+		r = requests.get(url)
+		if r.status_code != 200:
+			self._logger.info("Connection to {} cound not be established.".format(url))
+			return False, "Connection to {} cound not be established.".format(url)
 
-		print("\n\n")
+		# Sending model, profile and gcodename to PrePrintService
+		files = {'model': open(model_path, 'rb'),
+				 'profile': open(profile_path, 'rb')}  # profile path is wrong (tmp file), but model path is correct
+		data = {"machinecode_name": os.path.split(machinecode_path)[-1]}
+		self._logger.info("Sending file {} and profile {} to {} and get {}".format(files["model"], files["profile"],
+																				   url, data["machinecode_name"]))
+
+		r = requests.post(url, files=files, data=data)
+		self._logger.info("POST to service with {}".format(r.status_code))
+		if r.status_code in [200, 201]:
+			self._logger.info("posted request successfully to {}".format(url))
+		else:
+			self._logger.error("Got http error code {} on request {}".format(r.status_code, url))
+			self._logger.error(r.text)
+			self._logger.info("Couldn't post to {}".format(url))
+			return False, "Couldn't post to {}, status code {}".format(url, r.status_code)
+
 		print(files)
 		print({"machinecode_name": machinecode_path.split(os.sep)[-1]})
+		print("\n\n")
 
-		# except Exception as e:
-		# 	pass
-		# finally:
-		# 	with self._cancelled_jobs_mutex:
-		# 		if machinecode_path in self._cancelled_jobs:
-		# 			self._cancelled_jobs.remove(machinecode_path)
-		# 	with self._slicing_commands_mutex:
-		# 		if machinecode_path in self._slicing_commands:
-		# 			del self._slicing_commands[machinecode_path]
+		with self._cancelled_jobs_mutex:
+			if machinecode_path in self._cancelled_jobs:
+				self._logger.info("### Cancelled")
+				# raise octoprint.slicing.SlicingCancelled()
+
+		# self._logger.info("### Finished, returncode %d" % p.returncode)
+		# if p.returncode == 0:
+		analysis = get_analysis_from_gcode(machinecode_path)
+		self._logger.info("Analysis found in gcode: %s" % str(analysis))
+		if analysis:
+			analysis = {'analysis': analysis}
+			return True, analysis
+
+		with self._cancelled_jobs_mutex:
+			if machinecode_path in self._cancelled_jobs:
+				self._cancelled_jobs.remove(machinecode_path)
+		with self._slicing_commands_mutex:
+			if machinecode_path in self._slicing_commands:
+				del self._slicing_commands[machinecode_path]
 
 		self._logger.info("-" * 40)
 
-	# def cancel_slicing(self, machinecode_path):
-	# 	with self._slicing_commands_mutex:
-	# 		if machinecode_path in self._slicing_commands:
-	# 			with self._cancelled_jobs_mutex:
-	# 				self._cancelled_jobs.append(machinecode_path)
-	# 			self._slicing_commands[machinecode_path].terminate()
-	# 			self._logger.info("Cancelled slicing of %s" % machinecode_path)
+	def cancel_slicing(self, machinecode_path):
+		with self._slicing_commands_mutex:
+			if machinecode_path in self._slicing_commands:
+				with self._cancelled_jobs_mutex:
+					self._cancelled_jobs.append(machinecode_path)
+				self._slicing_commands[machinecode_path].terminate()
+				self._logger.info("Cancelled slicing of %s" % machinecode_path)
 
 	def _load_profile(self, path):
 		profile, display_name, description = Profile.from_slic3r_ini(path)
