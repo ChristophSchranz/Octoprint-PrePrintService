@@ -9,9 +9,12 @@ import re
 import json
 import flask
 import requests
+import tempfile
 from collections import defaultdict
 from pkg_resources import parse_version
 
+import octoprint.filemanager
+import octoprint.filemanager.storage
 import octoprint.plugin
 from octoprint.util.paths import normalize as normalize_path
 
@@ -41,9 +44,9 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		self._slicing_commands_mutex = threading.Lock()
 		self._cancelled_jobs = []
 		self._cancelled_jobs_mutex = threading.Lock()
+		self._job_mutex = threading.Lock()
 
 	# ~~ StartupPlugin API
-
 	def on_after_startup(self):
 		self._logger.info("Hello from the PrePrintService plugin! (more: %s)" % self._settings.get(["url"]))
 
@@ -180,20 +183,17 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		r.headers["Location"] = result["resource"]
 		return r
 
-	##~~ SlicerPlugin API
-
+	# SlicerPlugin API
 	def is_slicer_configured(self):
 		slic3r_engine = normalize_path(self._settings.get(["slic3r_engine"]))
 		return slic3r_engine is not None and os.path.exists(slic3r_engine)
-		# return True
 
 	def get_slicer_properties(self):
 		return dict(
 			type="preprintservice",
 			name="PrePrintService",
 			same_device=False,
-			progress_report=False
-		)
+			progress_report=False)
 
 	def get_slicer_default_profile(self):
 		self._logger.info("get_slicer_default_profile")
@@ -220,28 +220,27 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 						   description=profile.description)
 
 	def do_slice(self, model_path, printer_profile, machinecode_path=None, profile_path=None, position=None,
-				 on_progress=None, on_progress_args=None, on_progress_kwargs=None):
+				 on_progress=None, on_progress_args=None, on_progress_kwargs=None, *args, **kwargs):
 		if not profile_path:
 			profile_path = self._settings.get(["default_profile"])
 
-		print("\n\n")
-		print(self._slicing_commands.items())
-		print(open(machinecode_path).read())
-		# print(self.get_slicer_profile(profile_path))
-		profile_dict, display_name, description = self._load_profile(profile_path)
-		# print(display_name)
-		print("\n\n")
+		with self._job_mutex:
+			print("\n\n")
+			print(self._slicing_commands.items())
+			print(open(machinecode_path).read())
+			print(machinecode_path)
+			print("args: {}".format(args))
+			print("kwargs: {}".format(kwargs))
+			# print(self.get_slicer_profile(profile_path))
+			profile_dict, display_name, description = self._load_profile(profile_path)
+			print("\n\n")
 
-		# if not machinecode_path:
-		path, _ = os.path.splitext(model_path)
-		machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
-
-		# with self._slicing_commands_mutex:
-		# 	self._logger.info("machine_code {}".format(machinecode_path))
-		# 	self._logger.info("self._slicing_commands: {}".format(self._slicing_commands.items()))
-		# 	self._slicing_commands[machinecode_path] = machinecode_path
-		# 	self._logger.info("self._slicing_commands_mutex: {}".format(self._slicing_commands_mutex))
-		# 	self._logger.info("self._slicing_commands: {}".format(self._slicing_commands.items()))
+			# machinecode_path is a string based on a random tmpfile
+			# if not machinecode_path:
+			# 	path, _ = os.path.splitext(model_path)
+			# 	machinecode_path = path + ".gco"
+			path, _ = os.path.splitext(model_path)
+			machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
 
 		# if position and isinstance(position, dict) and "x" in position and "y" in position:
 		# 	posX = position["x"]
@@ -258,8 +257,13 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 		# Try connection to PrePrintService
 		url = self._settings.get(["url"]) + 'upload-octoprint'
-		r = requests.get(url)
-		if r.status_code != 200:
+		try:
+			r = requests.get(url)
+			if r.status_code != 200:
+				self._logger.info("Connection to {} cound not be established, status code {}"
+								  .format(url, r.status_code))
+				return False, "Connection to {} cound not be established.".format(url)
+		except requests.ConnectionError:
 			self._logger.info("Connection to {} cound not be established.".format(url))
 			return False, "Connection to {} cound not be established.".format(url)
 
@@ -281,7 +285,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			return False, "Couldn't post to {}, status code {}".format(url, r.status_code)
 
 		print(files)
-		print({"machinecode_name": machinecode_path.split(os.sep)[-1]})
+		print("machinecode_path {}".format(machinecode_path))
 		print("\n")
 
 		with self._cancelled_jobs_mutex:
@@ -296,6 +300,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		if analysis:
 			analysis = {'analysis': analysis}
 			return True, analysis
+
+		return True, "was loaded to server"
 
 		with self._cancelled_jobs_mutex:
 			if machinecode_path in self._cancelled_jobs:
@@ -397,6 +403,7 @@ def __plugin_load__():
 
 	global __plugin_hooks__
 	__plugin_hooks__ = {
+		# "octoprint.filemanager.preprocessor": __plugin_implementation__.do_slice,
 		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
 	}
 

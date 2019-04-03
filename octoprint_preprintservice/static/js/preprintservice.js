@@ -3,7 +3,7 @@
  */
 
 $(function() {
-    function Slic3rViewModel(parameters) {
+    function PrePrintServiceViewModel(parameters) {
         var self = this;
 
         self.loginState = parameters[0];
@@ -237,5 +237,5 @@ $(function() {
     }
 
     // view model class, parameters for constructor, container to bind to
-    ADDITIONAL_VIEWMODELS.push([Slic3rViewModel, ["loginStateViewModel", "settingsViewModel", "slicingViewModel"], document.getElementById("settings_plugin_preprintservice_dialog")]);
+    ADDITIONAL_VIEWMODELS.push([PrePrintServiceViewModel, ["loginStateViewModel", "settingsViewModel", "slicingViewModel"], document.getElementById("settings_plugin_preprintservice_dialog")]);
 });
