@@ -39,14 +39,14 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 							octoprint.plugin.BlueprintPlugin,
 							octoprint.plugin.TemplatePlugin,
 							octoprint.plugin.EventHandlerPlugin):
-	def __init__(self):
+	# def __init__(self):
 		# setup job tracking across threads
-		import threading
-		self._slicing_commands = dict()
-		self._slicing_commands_mutex = threading.Lock()
-		self._cancelled_jobs = []
-		self._cancelled_jobs_mutex = threading.Lock()
-		self._job_mutex = threading.Lock()
+		# import threading
+		# self._slicing_commands = dict()
+		# self._slicing_commands_mutex = threading.Lock()
+		# self._cancelled_jobs = []
+		# self._cancelled_jobs_mutex = threading.Lock()
+		# self._job_mutex = threading.Lock()
 
 	# ~~ StartupPlugin API
 	def on_after_startup(self):
@@ -188,7 +188,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 	# EventPlugin
 	def on_event(self, event, payload):
-		print("\nEVENT: {}: {}\n".format(event, payload))
+		self._logger.info("\nEVENT: {}: {}\n".format(event, payload))
 		# Extract Gcode name and set it as instance var
 		if event == "SlicingStarted":
 			self.machinecode_name = payload.get("gcode", None)
@@ -255,22 +255,22 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		if not profile_path:
 			profile_path = self._settings.get(["default_profile"])
 
-		with self._job_mutex:
-			print("\n\n")
-			print(self._slicing_commands.items())
-			print(open(machinecode_path).read())
-			print(machinecode_path)
-			# print(self.get_slicer_profile(profile_path))
-			profile_dict, display_name, description = self._load_profile(profile_path)
-			print("\n\n")
+		# with self._job_mutex:
+		print("\n\n")
+		# print(self._slicing_commands.items())
+		print(open(machinecode_path).read())
+		print(machinecode_path)
+		# print(self.get_slicer_profile(profile_path))
+		profile_dict, display_name, description = self._load_profile(profile_path)
+		print("\n\n")
 
-			# machinecode_path is a string based on a random tmpfile
-			if self.machinecode_name:
-				machinecode_path = self.machinecode_name
-			else:
-				path, _ = os.path.splitext(model_path)
-				machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
-			print("\nMachinecode_name: {}\n".format(machinecode_path))
+		# machinecode_path is a string based on a random tmpfile
+		if self.machinecode_name:
+			machinecode_path = self.machinecode_name
+		else:
+			path, _ = os.path.splitext(model_path)
+			machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
+		print("\nMachinecode_name: {}\n".format(machinecode_path))
 
 		if position and isinstance(position, dict) and "x" in position and "y" in position:
 			posX = position["x"]
@@ -282,7 +282,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			posX = printer_profile["volume"]["width"] / 2.0
 			posY = printer_profile["volume"]["depth"] / 2.0
 		center = json.dumps(dict({"posX": posX, "posY": posY}))
-		self._logger.info("Center of the model: {}".format(center))
+		self._logger.debug("Center of the model: {}".format(center))
 
 		# Try connection to PrePrintService
 		url = self._settings.get(["url"]) + 'upload-octoprint'
@@ -323,7 +323,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		slicer_worker_thread.daemon = True
 		slicer_worker_thread.start()
 
-		# Check for cancellations
+		# # Check for cancellations
 		# with self._cancelled_jobs_mutex:
 		# 	if machinecode_path in self._cancelled_jobs:
 		# 		self._logger.info("machine code in job mutex")
@@ -340,13 +340,13 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			analysis = {'analysis': analysis}
 			return True, analysis
 
-	def cancel_slicing(self, machinecode_path):
-		with self._slicing_commands_mutex:
-			if machinecode_path in self._slicing_commands:
-				with self._cancelled_jobs_mutex:
-					self._cancelled_jobs.append(machinecode_path)
-				self._slicing_commands[machinecode_path].terminate()
-				self._logger.info("Cancelled slicing of %s" % machinecode_path)
+	# def cancel_slicing(self, machinecode_path):
+	# 	with self._slicing_commands_mutex:
+	# 		if machinecode_path in self._slicing_commands:
+	# 			with self._cancelled_jobs_mutex:
+	# 				self._cancelled_jobs.append(machinecode_path)
+	# 			self._slicing_commands[machinecode_path].terminate()
+	# 			self._logger.info("Cancelled slicing of %s" % machinecode_path)
 
 	def _load_profile(self, path):
 		profile, display_name, description = Profile.from_slic3r_ini(path)
@@ -377,11 +377,23 @@ def get_analysis_from_gcode(machinecode_path):
 	The analysis structure should look like this:
 	http://docs.octoprint.org/en/master/modules/filemanager.html#octoprint.filemanager.analysis.GcodeAnalysisQueue
 	(There is a bug in the documentation, estimatedPrintTime should be in seconds.)
-	Return None if there is no analysis information in the file.
+	Return None if there is no analysis information in the file and return -1 for each value if the file is empty
 	"""
 	filament_length = None
 	filament_volume = None
 	printing_seconds = None
+
+	try:
+		x = len(open(machinecode_path).readlines())
+	except (TypeError, IOError) as e:
+		# empty file was uploaded
+		dd = lambda: defaultdict(dd)
+		analysis = dd()
+		analysis['estimatedPrintTime'] = -1
+		analysis['filament']['tool0']['length'] = -1
+		analysis['filament']['tool0']['volume'] = -1
+		return json.loads(json.dumps(analysis))  # We need to be strict about our return type, unfortunately.
+
 	with open(machinecode_path) as gcode_lines:
 		for gcode_line in gcode_lines:
 			m = re.match('\s*;\s*filament used\s*=\s*([0-9.]+)\s*mm\s*\(([0-9.]+)cm3\)\s*', gcode_line)
@@ -401,6 +413,7 @@ def get_analysis_from_gcode(machinecode_path):
 						m = re.match('\s*([0-9.]+)' + re.escape(unit[0]), time_part)
 						if m:
 							printing_seconds += float(m.group(1)) * unit[1]
+
 	# Now build up the analysis struct
 	analysis = None
 	if printing_seconds is not None or filament_length is not None or filament_volume is not None:
