@@ -10,12 +10,10 @@ import time
 import json
 import flask
 import requests
-import tempfile
+
 from collections import defaultdict
 from pkg_resources import parse_version
 
-import octoprint.filemanager
-import octoprint.filemanager.storage
 import octoprint.plugin
 from octoprint.util.paths import normalize as normalize_path
 
@@ -39,19 +37,10 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 							octoprint.plugin.BlueprintPlugin,
 							octoprint.plugin.TemplatePlugin,
 							octoprint.plugin.EventHandlerPlugin):
-	# def __init__(self):
-		# setup job tracking across threads
-		# import threading
-		# self._slicing_commands = dict()
-		# self._slicing_commands_mutex = threading.Lock()
-		# self._cancelled_jobs = []
-		# self._cancelled_jobs_mutex = threading.Lock()
-		# self._job_mutex = threading.Lock()
 
 	# ~~ StartupPlugin API
 	def on_after_startup(self):
 		self._logger.info("Hello from the PrePrintService plugin! (more: %s)" % self._settings.get(["url"]))
-		print("\nDuplicate File, deletion\n")
 
 	def get_settings_defaults(self):
 		return dict(url="http://localhost:2304/",
@@ -188,24 +177,16 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 	# EventPlugin
 	def on_event(self, event, payload):
-		self._logger.info("\nEVENT: {}: {}\n".format(event, payload))
+		# self._logger.info("\nEVENT: {}: {}\n".format(event, payload))
 		# Extract Gcode name and set it as instance var
 		if event == "SlicingStarted":
 			self.machinecode_name = payload.get("gcode", None)
 		# if event == "FileAdded":
-			# If the Added Name equals the self.machincode_name, delete it as it the empty duplicate
-			# if payload.get("name", None) == self.machinecode_name:
-			# 	print("\nDuplicate File, deletion\n")
-				# octoprint.util.silent_remove(self.machinecode_name)
-				# octoprint.util.silent_remove(".octoprint/uploads/{}".format(self.machinecode_name))
-
-				# url = "http://localhost:5000/api/files/local/{}?apikey=A943AB47727A461F9CEF9ECD2E4E1E60".format(self.machinecode_name)
-				# res = requests.delete(url)
-				# if res.status_code == 204:
-				# 	print("Successfully deleted file")
-				# 	self.machinecode_name = None
-				# else:
-				# 	print("Coudn't delete file, status code: {}, text {}".format(res.status_code, res.text))
+		# 	# If the Added Name equals the self.machincode_name, delete it as it the empty duplicate
+		# 	if payload.get("name", None) == self.machinecode_name:
+		# 		print("\nDuplicate File, deletion\n")
+		# 		octoprint.util.silent_remove(self.machinecode_name)
+		# 		octoprint.util.silent_remove(".octoprint/uploads/{}".format(self.machinecode_name))
 
 	# # API key validator
 	# def hook(self, apikey, *args, **kwargs):
@@ -254,15 +235,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		# Get the default profile if none was set
 		if not profile_path:
 			profile_path = self._settings.get(["default_profile"])
-
-		# with self._job_mutex:
-		print("\n\n")
-		# print(self._slicing_commands.items())
-		print(open(machinecode_path).read())
-		print(machinecode_path)
-		# print(self.get_slicer_profile(profile_path))
 		profile_dict, display_name, description = self._load_profile(profile_path)
-		print("\n\n")
 
 		# machinecode_path is a string based on a random tmpfile
 		if self.machinecode_name:
@@ -270,7 +243,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		else:
 			path, _ = os.path.splitext(model_path)
 			machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
-		print("\nMachinecode_name: {}\n".format(machinecode_path))
+		self._logger.debug("Machinecode_name: {}".format(machinecode_path))
 
 		if position and isinstance(position, dict) and "x" in position and "y" in position:
 			posX = position["x"]
@@ -289,13 +262,12 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		try:
 			r = requests.get(url)
 			if r.status_code != 200:
-				self._logger.info("Connection to {} cound not be established, status code {}"
+				self._logger.warning("Connection to {} could not be established, status code {}"
 								  .format(url, r.status_code))
-				return False, "Connection to {} cound not be established.".format(url)
+				return False, "Connection to {} could not be established.".format(url)
 		except requests.ConnectionError:
-			self._logger.info("Connection to {} cound not be established.".format(url))
-			return False, "Connection to {} cound not be established.".format(url)
-
+			self._logger.info("Connection to {} could not be established.".format(url))
+			return False, "Connection to {} could not be established.".format(url)
 
 		# Sending model, profile and gcodename to PrePrintService
 		files = {'model': open(model_path, 'rb'),
@@ -309,9 +281,9 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		# https://github.com/ChristophSchranz/Pre-Print-Service
 		def post_to_preprintserver(url, files, data):
 			r = requests.post(url, files=files, data=data)
-			self._logger.info("POST to service with {}".format(r.status_code))
-			if r.status_code in [200, 201]:
-				self._logger.info("posted request successfully to {}".format(url))
+			self._logger.info("POST to service with status code: {}".format(r.status_code))
+			if r.status_code == 200:
+				self._logger.info("Posted request successfully to {}".format(url))
 			else:
 				self._logger.error("Got http error code {} on request {}".format(r.status_code, url))
 				self._logger.error(r.text)
@@ -323,30 +295,11 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		slicer_worker_thread.daemon = True
 		slicer_worker_thread.start()
 
-		# # Check for cancellations
-		# with self._cancelled_jobs_mutex:
-		# 	if machinecode_path in self._cancelled_jobs:
-		# 		self._logger.info("machine code in job mutex")
-		# 		self._cancelled_jobs.remove(machinecode_path)
-		# with self._slicing_commands_mutex:
-		# 	if machinecode_path in self._slicing_commands:
-		# 		self._logger.info("machine code in slicing mutex")
-		# 		print(self._slicing_commands.items())
-		# 		del self._slicing_commands[machinecode_path]
-
 		analysis = get_analysis_from_gcode(machinecode_path)
-		self._logger.info("Analysis found in gcode: %s" % str(analysis))
+		self._logger.info("Analysis for gcode {}: {}".format(machinecode_path, analysis))
 		if analysis:
 			analysis = {'analysis': analysis}
 			return True, analysis
-
-	# def cancel_slicing(self, machinecode_path):
-	# 	with self._slicing_commands_mutex:
-	# 		if machinecode_path in self._slicing_commands:
-	# 			with self._cancelled_jobs_mutex:
-	# 				self._cancelled_jobs.append(machinecode_path)
-	# 			self._slicing_commands[machinecode_path].terminate()
-	# 			self._logger.info("Cancelled slicing of %s" % machinecode_path)
 
 	def _load_profile(self, path):
 		profile, display_name, description = Profile.from_slic3r_ini(path)
