@@ -272,15 +272,17 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 				machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
 			print("\nMachinecode_name: {}\n".format(machinecode_path))
 
-		# if position and isinstance(position, dict) and "x" in position and "y" in position:
-		# 	posX = position["x"]
-		# 	posY = position["y"]
-		# elif printer_profile["volume"]["formFactor"] == "circular" or printer_profile["volume"]["origin"] == "center":
-		# 	posX = 0
-		# 	posY = 0
-		# else:
-		# 	posX = printer_profile["volume"]["width"] / 2.0
-		# 	posY = printer_profile["volume"]["depth"] / 2.0
+		if position and isinstance(position, dict) and "x" in position and "y" in position:
+			posX = position["x"]
+			posY = position["y"]
+		elif printer_profile["volume"]["formFactor"] == "circular" or printer_profile["volume"]["origin"] == "center":
+			posX = 0
+			posY = 0
+		else:
+			posX = printer_profile["volume"]["width"] / 2.0
+			posY = printer_profile["volume"]["depth"] / 2.0
+		center = json.dumps(dict({"posX": posX, "posY": posY}))
+		self._logger.info("Center of the model: {}".format(center))
 
 		# Try connection to PrePrintService
 		url = self._settings.get(["url"]) + 'upload-octoprint'
@@ -294,12 +296,14 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			self._logger.info("Connection to {} cound not be established.".format(url))
 			return False, "Connection to {} cound not be established.".format(url)
 
+
 		# Sending model, profile and gcodename to PrePrintService
 		files = {'model': open(model_path, 'rb'),
 				 'profile': open(profile_path, 'rb')}  # profile path is wrong (tmp file), but model path is correct
-		data = {"machinecode_name": os.path.split(machinecode_path)[-1]}
-		self._logger.info("Sending file {} and profile {} to {} and get {}".format(files["model"], files["profile"],
-																				   url, data["machinecode_name"]))
+		data = {"machinecode_name": os.path.split(machinecode_path)[-1],
+				"center": center}
+		self._logger.info("Sending file {} and profile {} with center to {} and get {}".format(
+			files["model"], files["profile"], data["center"], url, data["machinecode_name"]))
 
 		# Defining the function that sends the files to the PrePrintService
 		# https://github.com/ChristophSchranz/Pre-Print-Service
