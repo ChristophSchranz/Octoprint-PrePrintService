@@ -6,6 +6,7 @@ import logging.handlers
 
 import os
 import re
+import time
 import json
 import flask
 import requests
@@ -36,7 +37,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 							octoprint.plugin.SettingsPlugin,
 							octoprint.plugin.AssetPlugin,
 							octoprint.plugin.BlueprintPlugin,
-							octoprint.plugin.TemplatePlugin):
+							octoprint.plugin.TemplatePlugin,
+							octoprint.plugin.EventHandlerPlugin):
 	def __init__(self):
 		# setup job tracking across threads
 		import threading
@@ -183,6 +185,32 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		r.headers["Location"] = result["resource"]
 		return r
 
+	# EventPlugin
+	def on_event(self, event, payload):
+		print("\nEVENT: {}: {}\n".format(event, payload))
+		# Extract Gcode name and set it as instance var
+		if event == "SlicingStarted":
+			print("Gcode name: {}".format(payload.get("gcode", None)))
+			self.machinecode_name = payload.get("gcode", None)
+			self.cancel_slicing(self.machinecode_name)
+		if event == "FileAdded":
+			if payload.get("name", None) == self.machinecode_name:
+				print("\nDuplicate File, deletion\n")
+
+				url = "http://localhost:5000/api/files/local/{}?apikey=A943AB47727A461F9CEF9ECD2E4E1E60".format(self.machinecode_name)
+				res = requests.delete(url)
+				if res.status_code == 204:
+					print("Successfully deleted file")
+					self.machinecode_name = None
+				else:
+					print("Coudn't delete file, status code: {}, text {}".format(res.status_code, res.text))
+
+	# # API key validator
+	# def hook(self, apikey, *args, **kwargs):
+	# 	from octoprint.server import userManager
+	# 	print("\n\nAPI key: {}".format(apikey))
+	# 	return userManager.findUser(userid=apikey)
+
 	# SlicerPlugin API
 	def is_slicer_configured(self):
 		slic3r_engine = normalize_path(self._settings.get(["slic3r_engine"]))
@@ -221,6 +249,10 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 	def do_slice(self, model_path, printer_profile, machinecode_path=None, profile_path=None, position=None,
 				 on_progress=None, on_progress_args=None, on_progress_kwargs=None, *args, **kwargs):
+	# 	pass
+	#
+	# def my_slice(self, model_path, printer_profile, machinecode_path=None, profile_path=None, position=None,
+	# 				 on_progress=None, on_progress_args=None, on_progress_kwargs=None, *args, **kwargs):
 		if not profile_path:
 			profile_path = self._settings.get(["default_profile"])
 
@@ -229,18 +261,17 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			print(self._slicing_commands.items())
 			print(open(machinecode_path).read())
 			print(machinecode_path)
-			print("args: {}".format(args))
-			print("kwargs: {}".format(kwargs))
 			# print(self.get_slicer_profile(profile_path))
 			profile_dict, display_name, description = self._load_profile(profile_path)
 			print("\n\n")
 
 			# machinecode_path is a string based on a random tmpfile
-			# if not machinecode_path:
-			# 	path, _ = os.path.splitext(model_path)
-			# 	machinecode_path = path + ".gco"
-			path, _ = os.path.splitext(model_path)
-			machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
+			if self.machinecode_name:
+				machinecode_path = "my_" + self.machinecode_name
+			else:
+				path, _ = os.path.splitext(model_path)
+				machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
+			print("\nMachinecode_name: {}\n".format(machinecode_path))
 
 		# if position and isinstance(position, dict) and "x" in position and "y" in position:
 		# 	posX = position["x"]
@@ -274,6 +305,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		self._logger.info("Sending file {} and profile {} to {} and get {}".format(files["model"], files["profile"],
 																				   url, data["machinecode_name"]))
 
+		# time.sleep(7)
 		r = requests.post(url, files=files, data=data)
 		self._logger.info("POST to service with {}".format(r.status_code))
 		if r.status_code in [200, 201]:
@@ -292,27 +324,28 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			if machinecode_path in self._cancelled_jobs:
 				self._logger.info("### Cancelled")
 				# raise octoprint.slicing.SlicingCancelled()
+		# Return true if successful to trigger a on_event, SlicingDone Event
+		return True, dict()
 
-		# self._logger.info("### Finished, returncode %d" % p.returncode)
-		# if p.returncode == 0:
-		analysis = get_analysis_from_gcode(machinecode_path)
-		self._logger.info("Analysis found in gcode: %s" % str(analysis))
-		if analysis:
-			analysis = {'analysis': analysis}
-			return True, analysis
-
-		return True, "was loaded to server"
-
-		with self._cancelled_jobs_mutex:
-			if machinecode_path in self._cancelled_jobs:
-				self._logger.info("machine code in job mutex")
-				self._cancelled_jobs.remove(machinecode_path)
-		with self._slicing_commands_mutex:
-			if machinecode_path in self._slicing_commands:
-				self._logger.info("machine code in slicing mutex")
-				print(self._slicing_commands.items())
-				del self._slicing_commands[machinecode_path]
-
+		# # self._logger.info("### Finished, returncode %d" % p.returncode)
+		# # if p.returncode == 0:
+		# analysis = get_analysis_from_gcode(machinecode_path)
+		# self._logger.info("Analysis found in gcode: %s" % str(analysis))
+		# if analysis:
+		# 	analysis = {'analysis': analysis}
+		# 	return True, analysis
+		#
+		#
+		# with self._cancelled_jobs_mutex:
+		# 	if machinecode_path in self._cancelled_jobs:
+		# 		self._logger.info("machine code in job mutex")
+		# 		self._cancelled_jobs.remove(machinecode_path)
+		# with self._slicing_commands_mutex:
+		# 	if machinecode_path in self._slicing_commands:
+		# 		self._logger.info("machine code in slicing mutex")
+		# 		print(self._slicing_commands.items())
+		# 		del self._slicing_commands[machinecode_path]
+		self.cancel_slicing(machinecode_path)
 		self._logger.info("-" * 40)
 
 	def cancel_slicing(self, machinecode_path):
@@ -405,5 +438,6 @@ def __plugin_load__():
 	__plugin_hooks__ = {
 		# "octoprint.filemanager.preprocessor": __plugin_implementation__.do_slice,
 		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
+		# "octoprint.accesscontrol.keyvalidator": __plugin_implementation__.hook
 	}
 
