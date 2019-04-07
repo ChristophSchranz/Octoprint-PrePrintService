@@ -1,0 +1,25 @@
+version: '3.4'
+
+services:
+  pre-print-service:
+    image: 127.0.0.1:5001/pre-print-service
+    build:
+      context: preprintservice_src/
+      args:
+        - SLIC3R_VERSION=https://github.com/prusa3d/Slic3r/releases/download/version_1.41.3/Slic3rPE-1.41.3+linux64-full-201902121303.tar.bz2
+    ports:
+      - 2304:2304
+    restart: always
+    deploy:
+      placement:
+        constraints: [node.role == worker]
+      resources:
+        limits:
+          cpus: "1"
+          memory: 8G
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure

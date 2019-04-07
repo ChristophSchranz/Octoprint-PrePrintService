@@ -1,20 +1,16 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+import json
 import logging
 import logging.handlers
-
 import os
 import re
-import time
-import json
-import flask
-import requests
-
 from collections import defaultdict
-from pkg_resources import parse_version
 
+import flask
 import octoprint.plugin
+import requests
 from octoprint.util.paths import normalize as normalize_path
 
 from .profile import Profile
@@ -32,8 +28,9 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 	# ~~ StartupPlugin API
 	def on_after_startup(self):
-		self._logger.info("\nHello from the PrePrintService plugin!")
+		self._logger.info("Hello from the PrePrintService plugin!")
 		self._logger.info("Settings: {}\n".format(self._settings.get_all_data()))
+		self._logger.info("Port: {}\n".format(self._settings.getInt(["port"])))
 
 	def get_settings_defaults(self):
 		return dict(url="http://localhost:2304/tweak",
@@ -64,13 +61,13 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 		new_url = os.path.join(self._settings.get(["url"]).strip(), 'tweak')
 		if old_url != new_url:
-			self._logger.info("\n\nNew url set: {}\n\n".format(new_url))
-			# data["is_url_ok"] = True
-			# octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+			self._logger.info("New url set: {}".format(new_url))
+		# data["is_url_ok"] = True
+		# octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
 		new_apikey = self._settings.get(["apikey"]).strip()
 		if old_apikey != new_apikey:
-			self._logger.info("\n\nNew apikey set: {}\n\n".format(new_apikey))
+			self._logger.info("New apikey set: {}".format(new_apikey))
 
 	def get_template_vars(self):
 		return dict(url=self._settings.get(["url"]),
@@ -224,14 +221,15 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			if apikey is None:
 				self._logger.warning("API KEY not configured")
 				return False
-			url = os.path.join("http://localhost:5000/".strip(), "api", "version?apikey={}".format(apikey))
+			url = "http://{}:5000/api/version?apikey={}".format(get_host_ip_address(), apikey)
 			try:
 				r = requests.get(url)
 				if r.status_code != 200:
-					self._logger.warning("Connection to {} couldn't be established, status code {}".format(url, r.status_code))
+					self._logger.warning(
+						"Connection to {} couldn't be established, status code {}".format(url, r.status_code))
 					return False
 			except requests.ConnectionError:
-				self._logger.warning("Connection to {} couldn't be established, status code {}".format(url, r.status_code))
+				self._logger.warning("Connection to {} couldn't be established".format(url))
 				return False
 			self._logger.info("Connection to {} is established, status code {}".format(url, r.status_code))
 			return True
@@ -303,17 +301,17 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
 		self._logger.debug("Machinecode_name: {}".format(machinecode_path))
 
-		if position and isinstance(position, dict) and "x" in position and "y" in position:
-			posX = position["x"]
-			posY = position["y"]
-		elif printer_profile["volume"]["formFactor"] == "circular" or printer_profile["volume"]["origin"] == "center":
-			posX = 0
-			posY = 0
-		else:
-			posX = printer_profile["volume"]["width"] / 2.0
-			posY = printer_profile["volume"]["depth"] / 2.0
-		center = json.dumps(dict({"posX": posX, "posY": posY}))
-		self._logger.debug("Center of the model: {}".format(center))
+		# if position and isinstance(position, dict) and "x" in position and "y" in position:
+		# 	posX = position["x"]
+		# 	posY = position["y"]
+		# elif printer_profile["volume"]["formFactor"] == "circular" or printer_profile["volume"]["origin"] == "center":
+		# 	posX = 0
+		# 	posY = 0
+		# else:
+		# 	posX = printer_profile["volume"]["width"] / 2.0
+		# 	posY = printer_profile["volume"]["depth"] / 2.0
+		# center = json.dumps(dict({"posX": posX, "posY": posY}))
+		# self._logger.debug("Center of the model: {}".format(center))
 
 		# Try connection to PrePrintService
 		url = os.path.join(self._settings.get(["url"]).strip(), 'tweak')
@@ -331,10 +329,12 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		files = {'model': open(model_path, 'rb'),
 				 'profile': open(profile_path, 'rb')}  # profile path is wrong (tmp file), but model path is correct
 		data = {"machinecode_name": os.path.split(machinecode_path)[-1],
-				"center": center,
-				"octoprint_url": "http://localhost:5000/api/files/local?apikey={}".format(self._settings.get(["apikey"]))}
-		self._logger.info("Sending file {} and profile {} with center to {} and get {}".format(
-			files["model"], files["profile"], data["center"], url, data["machinecode_name"]))
+				# "center": center,
+				"octoprint_url": "http://{}:5000/api/files/local?apikey={}".format(
+					get_host_ip_address(),
+					self._settings.get(["apikey"]))}
+		self._logger.info("Sending file {} and profile {} with center {} and get {}".format(
+			files.get("model"), files.get("profile"), data.get("center"), url, data.get("machinecode_name")))
 
 		# Defining the function that sends the files to the PrePrintService
 		# https://github.com/ChristophSchranz/Pre-Print-Service
@@ -382,6 +382,16 @@ def _sanitize_name(name):
 	sanitized_name = ''.join(c for c in name if c in valid_chars)
 	sanitized_name = sanitized_name.replace(" ", "_")
 	return sanitized_name.lower()
+
+
+def get_host_ip_address():
+	import socket
+	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	s.connect(("8.8.8.8", 80))
+	ip_address = s.getsockname()[0]
+	s.close()
+	# return "192.168.43.187"
+	return ip_address
 
 
 def get_analysis_from_gcode(machinecode_path):
