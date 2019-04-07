@@ -1,8 +1,8 @@
 <div id="settings_plugin_preprintservice_dialog" data-bind="allowBindings: true">
 
     <form class="form-horizontal">
-        <div class="control-group">
-            <h4> PrePrintService</h4>
+        <h4> PrePrintService</h4>
+{#        {% include "snippets/settings/preprintservice/enginePath.jinja2" %}#}
             <label class="control-label">{{ _('PrePrintService URL') }}</label>
             <div class="controls">
                 <input type="text" class="input-block-level" data-bind="value: settings.plugins.preprintservice.url">
@@ -13,7 +13,6 @@
                 <input type="text" class="input-block-level" data-bind="value: settings.plugins.preprintservice.apikey">
             Currently: {{ plugin_preprintservice_apikey }}
             </div>
-        </div>
     </form>
 
 
