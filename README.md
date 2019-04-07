@@ -19,7 +19,7 @@ external docker containers.
 
 ## Setup
 
-###1. Install the Plugin
+### 1. Install the Plugin
 
 Install via the bundled [Plugin Manager](http://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
 or manually using this URL on the Printer-Controller
@@ -31,7 +31,7 @@ in the navigation bar.
 ![OctoPrint_navbar](https://github.com/ChristophSchranz/Octoprint-PrePrintService/blob/master/extras/OctoPrint_navbar.png)
 
 
-###2. Install the PrePrint Service
+### 2. Install the PrePrint Service
 
 In order to make the service highly available, the PrePrint Service should be deployed
  in docker. If you are
@@ -82,17 +82,16 @@ To test the configuration, do the following steps:
    If this doesn't work, start the octoprint server per CLI with `octoprint serve`
    and track the logs. The following two lines are expected:
    
-        2019-04-07 21:47:08,066 - octoprint.plugins.preprintservice - INFO - Connection to PrePrintService is ready
-        2019-04-07 21:47:08,080 - octoprint.plugins.preprintservice - INFO - Connection to http://192.168.43.187:5000/api/version?apikey=A943AB47727A461F9CEF9EXXXXXXXX is established, status code 200 
+        2019-04-07 22:28:44,301 - octoprint.plugins.preprintservice - INFO - Connection to PrePrintService on http://192.168.48.8:2304/tweak is ready, status code 200
+        2019-04-07 22:28:44,321 - octoprint.plugins.preprintservice - INFO - Connection to Octoprint server on http://192.168.48.43:5000/api/version?apikey=A943AB47727A461F9CEF9EXXXXXXXX is ready, status code 200
 
-   If you see instead the following, please check the APIKEY:
+   If you see instead the following, please check the APIKEY: (403 - forbidden)
         
-        2019-04-07 21:46:58,524 - tornado.access - WARNING - 403 GET /api/version?apikey=asdfasdfasdf (192.168.43.187) 5.05ms
-        2019-04-07 21:46:58,527 - octoprint.plugins.preprintservice - WARNING - Connection to http://192.168.43.187:5000/api/version?apikey=asdfasdfasdf couldn't be established, status code 403
-        
+        2019-04-07 22:30:09,570 - octoprint.plugins.preprintservice - WARNING - Connection to Octoprint server on http://192.168.48.43:5000/api/version?apikey=asdf couldn't be established, status code 403
+
    If the the PrePrint Server can't be reached, you will seee this:
    
-        2019-04-07 21:51:28,454 - octoprint.plugins.preprintservice - WARNING - Connection to http://localhost:2305/ couldn't be established
+        2019-04-07 22:27:34,746 - octoprint.plugins.preprintservice - WARNING - Connection to PrePrint Server on http://192.168.48.81:2304/asdf couldn't be established
 
    
 If you have any troubles in setting this plugin up or tips to improve this instruction,

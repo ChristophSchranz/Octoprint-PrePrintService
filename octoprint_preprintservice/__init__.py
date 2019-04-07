@@ -30,7 +30,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 	def on_after_startup(self):
 		self._logger.info("Hello from the PrePrintService plugin!")
 		self._logger.info("Settings: {}\n".format(self._settings.get_all_data()))
-		self._logger.info("Port: {}\n".format(self._settings.getInt(["port"])))
+		# self._logger.info("Port: {}\n".format(self._settings.getInt(["port"])))
 
 	def get_settings_defaults(self):
 		return dict(url="http://localhost:2304/tweak",
@@ -59,9 +59,9 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			else:
 				self._logger.setLevel(logging.CRITICAL)
 
-		new_url = os.path.join(self._settings.get(["url"]).strip(), 'tweak')
+		new_url = self._settings.get(["url"]).strip()
 		if old_url != new_url:
-			self._logger.info("New url set: {}".format(new_url))
+			self._logger.info("New PrePrint Service url was set: {}".format(new_url))
 		# data["is_url_ok"] = True
 		# octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
@@ -209,12 +209,14 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			r = requests.get(url, timeout=2)
 			if r.status_code != 200:
 				self._logger.warning(
-					"Connection to {} couldn't be established, status code {}".format(url, r.status_code))
+					"Connection to PrePrint Server on {} couldn't be established, status code {}"
+						.format(url, r.status_code))
 				return False,
 		except requests.ConnectionError:
-			self._logger.warning("Connection to {} couldn't be established".format(url))
+			self._logger.warning("Connection to PrePrint Server on {} couldn't be established".format(url))
 			return False
-		self._logger.info("Connection to PrePrintService is ready")
+		self._logger.info("Connection to PrePrintService on {} is ready, status code {}"
+						  .format(url, r.status_code))
 
 		def test_octoprint_connection():
 			apikey = self._settings.get(["apikey"]).strip()
@@ -226,12 +228,14 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 				r = requests.get(url)
 				if r.status_code != 200:
 					self._logger.warning(
-						"Connection to {} couldn't be established, status code {}".format(url, r.status_code))
+						"Connection to Octoprint server on {} couldn't be established, status code {}"
+							.format(url, r.status_code))
 					return False
 			except requests.ConnectionError:
-				self._logger.warning("Connection to {} couldn't be established".format(url))
+				self._logger.warning("Connection to Octoprint server on {} couldn't be established".format(url))
 				return False
-			self._logger.info("Connection to {} is established, status code {}".format(url, r.status_code))
+			self._logger.info("Connection to Octoprint server on {} is ready, status code {}"
+							  .format(url, r.status_code))
 			return True
 
 		import threading
@@ -314,7 +318,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		# self._logger.debug("Center of the model: {}".format(center))
 
 		# Try connection to PrePrintService
-		url = os.path.join(self._settings.get(["url"]).strip(), 'tweak')
+		url = self._settings.get(["url"]).strip()
 		try:
 			r = requests.get(url)
 			if r.status_code != 200:
