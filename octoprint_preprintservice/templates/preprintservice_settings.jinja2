@@ -1,17 +1,22 @@
-<form class="form-horizontal">
-    <div class="control-group">
-        <h4> PrePrintService</h4>
-        <label class="control-label">{{ _('PrePrintService URL') }}</label>
-        <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.preprintservice.url">
-        Currently: {{ plugin_preprintservice_url }}
-        </div>
-    </div>
-</form>
-
-
-
 <div id="settings_plugin_preprintservice_dialog" data-bind="allowBindings: true">
+
+    <form class="form-horizontal">
+        <div class="control-group">
+            <h4> PrePrintService</h4>
+            <label class="control-label">{{ _('PrePrintService URL') }}</label>
+            <div class="controls">
+                <input type="text" class="input-block-level" data-bind="value: settings.plugins.preprintservice.url">
+            Currently: {{ plugin_preprintservice_url }}
+            </div>
+            <label class="control-label">{{ _('Octoprint APIKEY') }}</label>
+            <div class="controls">
+                <input type="text" class="input-block-level" data-bind="value: settings.plugins.preprintservice.apikey">
+            Currently: {{ plugin_preprintservice_apikey }}
+            </div>
+        </div>
+    </form>
+
+
     <h4>{{ _('Profiles') }}</h4>
 
     <div class="pull-right">
