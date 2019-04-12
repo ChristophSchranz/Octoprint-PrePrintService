@@ -40,19 +40,22 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 												 "default_slic3r_profile.ini"),
 					debug_logging=True,
 					apikey="asdfasdf",
-					isapikeyok=False
+					isapikeyok=False,
+					get_tweaked_stl=True,
+					tweak_action="tweak slice"
 					)
 
 	def get_template_vars(self):
 		return dict(url=self._settings.get(["url"]),
 					apikey=self._settings.get(["apikey"]),
-					get_tweaked=self._settings.get_boolean(["gettweaked"]))
+					get_tweaked_stl=self._settings.get_boolean(["get_tweaked_stl"]),
+					tweak_action=self._settings.get(["tweak_action"]))
 
 	def get_template_configs(self):
 		return [
 			dict(type="navbar", custom_bindings=False),
-			dict(type="settings", custom_bindings=False),
-			dict(type="sidebar", template="dialogs/preprintservice_sidebar.jinja2", custom_bindings=False)
+			dict(type="settings", custom_bindings=True)
+			# dict(type="sidebar", template="dialogs/preprintservice_sidebar.jinja2", custom_bindings=True)
 		]
 
 	# ~~ SettingsPlugin mixin
@@ -62,7 +65,10 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		old_debug_logging = self._settings.get_boolean(["debug_logging"])
 		old_url = self._settings.get(["url"]).strip()
 		old_apikey = self._settings.get(["apikey"]).strip()
+		old_tweakaction = self._settings.get(["tweak_action"])
+		old_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
 
+		self._logger.info("\n\nall data: {}\n".format(data))
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
 		new_debug_logging = self._settings.get_boolean(["debug_logging"])
@@ -81,6 +87,13 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		new_apikey = self._settings.get(["apikey"]).strip()
 		if old_apikey != new_apikey:
 			self._logger.info("New apikey set: {}".format(new_apikey))
+
+		new_tweakaction = self._settings.get(["tweak_action"])
+		if old_tweakaction != new_tweakaction:
+			self._logger.info("New tweak_action set: {}".format(new_tweakaction))
+		new_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
+		if old_gettweakedstl != new_gettweakedstl:
+			self._logger.info("New get_tweaked_stl set: {}".format(new_gettweakedstl))
 
 	# ~~ AssetPlugin mixin
 
@@ -196,7 +209,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		if event == "SlicingStarted":
 			self.machinecode_name = payload.get("gcode", None)
 			# get here also the tweak option
-			self._logger.info("\nEVENT: {}: {}\n".format(event, payload))
+			# self._logger.info("\nEVENT: {}: {}\n".format(event, payload))
 
 	# if event == "FileAdded":
 	# 	# If the Added Name equals the self.machincode_name, delete it as it the empty duplicate
@@ -306,10 +319,19 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		if not profile_path:
 			profile_path = self._settings.get(["default_profile"])
 		profile_dict, display_name, description = self._load_profile(profile_path)
-		print("\n Input values: {} \n{}\n\n".format(args, kwargs))
-		print("action: {}\n".format(self._settings.global_get(["plugin_preprintservice_gettweaked"])))
-		print("action: {}\n".format(self._settings.get_boolean(["plugin_preprintservice_gettweaked"])))
-		print("action: {}\n".format(self._settings.get_all_data()))
+
+		# print("\n Input values: {} \n{}\n\n".format(args, kwargs))
+		print("\n\nAll data: {}\n\n".format(self._settings.get_all_data()))
+		tweak_actions = list()
+		if "tweak" in self._settings.get(["tweak_action"]):
+			tweak_actions.append("tweak")
+		if "slice" in self._settings.get(["tweak_action"]):
+			tweak_actions.append("slice")
+		if self._settings.get_boolean(["get_tweaked_stl"]):
+			tweak_actions.append("get_tweaked_stl")
+		self._logger.info("Using Tweak actions: {}".format(tweak_actions))
+		# tweak_actions = ["tweak", "slice", "get_tweaked_stl"]
+
 		# octoprint.plugin.TemplatePlugin.on_plugin_enabled()
 		# machinecode_path is a string based on a random tmpfile
 		if self.machinecode_name:
@@ -318,8 +340,6 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			path, _ = os.path.splitext(model_path)
 			machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
 		self._logger.debug("Machinecode_name: {}".format(machinecode_path))
-
-		tweak_actions = ["tweak", "slice", "get_tweaked_stl"]
 
 		# if position and isinstance(position, dict) and "x" in position and "y" in position:
 		# 	posX = position["x"]

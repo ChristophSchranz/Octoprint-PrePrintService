@@ -96,10 +96,12 @@ def tweak_slice_file():
 
 			# 1.3) Get the tweak actions
 			# Get the tweak option and use extendedTweak minimize the volume as default
-			tweak_actions = request.form.get("tweak_actions")  #, ["tweak", "slice", "get_tweaked_stl"])
+			tweak_actions = request.form.get("tweak_actions").split()  # of the form: "tweak slice get_tweaked_stl")
+			if not tweak_actions:
+				tweak_actions = ["tweak", "slice", "get_tweaked_stl"]
 			if "tweak" in tweak_actions:
 				command = "extendedTweakVol"
-			app.logger.info("Using Tweaker actions: {}".format(tweak_actions))
+			app.logger.info("Using Tweaker actions: {}".format(", ".join(tweak_actions)))
 			cmd_map = dict({"Tweak": "",
 							"extendedTweak": "-x",
 							"extendedTweakVol": "-x -vol",
@@ -110,8 +112,8 @@ def tweak_slice_file():
 			# 1.4) Get the machinecode_name, if slicing was chosen
 			if profile_path:
 				machinecode_name = request.form.get("machinecode_name", filename.replace(".stl", ".gcode"))
-				if "tweak" in tweak_actions:
-					machinecode_name = "tweaked_{}".format(machinecode_name)
+				# if "tweak" in tweak_actions:
+				# 	machinecode_name = "tweaked_{}".format(machinecode_name)
 				gcode_path = os.path.join(app.config["UPLOAD_FOLDER"], machinecode_name)
 				app.logger.info("Machinecode will have name {}".format(machinecode_name))
 
@@ -134,7 +136,7 @@ def tweak_slice_file():
 				app.logger.info("Tweaking was skipped as expected.")
 
 			# 2.2) Send back tweaked file to requester
-			if octoprint_url and "get_tweaked_stl" in tweak_actions:
+			if octoprint_url and "tweak" in tweak_actions and "get_tweaked_stl" in tweak_actions:
 				# Upload the tweaked model via API to octoprint
 				# find the apikey in octoprint server, settings, access control
 				outfile = "{UPLOAD_FOLDER}{sep}{filename}".format(UPLOAD_FOLDER=app.config['UPLOAD_FOLDER'],
@@ -150,7 +152,8 @@ def tweak_slice_file():
 						"Problem while loading tweaked stl to Octoprint server with code '{}'".format(r.status_code))
 					app.logger.warning(r.text)
 					flash("Problem while loading tweaked stl back to server with code '{}'".format(r.status_code))
-				# return redirect(octoprint_url)
+			else:
+				app.logger.info("Sending back file was skipped as expected.")
 
 			# 3) Slice the tweaked model using Slic3r
 			# Slice the file if it is set, else set gcode_path to None
