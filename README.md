@@ -21,12 +21,12 @@ external docker containers.
 
 ### 1. Install the Plugin
 
-Install via the bundled [Plugin Manager](http://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
+Install the PrePrint Server plugin via the bundled [Plugin Manager](http://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
 or manually using this URL on the Printer-Controller
 
     pip install "https://github.com/christophschranz/OctoPrint-PrePrintService/archive/master.zip"
     
-When opening octoprint, you see that everything worked, if there stands `Using PrePrint Service`
+When opening octoprint, you see that everything worked, if you see the label `Using PrePrint Service`
 in the navigation bar.
 ![OctoPrint_navbar](https://github.com/ChristophSchranz/Octoprint-PrePrintService/blob/master/extras/OctoPrint_navbar.png)
 
@@ -36,21 +36,25 @@ in the navigation bar.
 In order to make the service highly available, the PrePrint Service should be deployed
  in docker. If you are
 not yet familiar with docker, have a quick look at the links in the 
-[requirements](#requirements) and install it on a free and performant server node.
+[requirements-section](#requirements) and install it on a performant server node.
 
 Then run the application locally with:
 
+    git clone https://github.com/christophschranz/OctoPrint-PrePrintService
+    cd OctoPrint-PrePrintService
     docker-compose up --build -d
     docker-compose logs -f
      
-The `docker-compose.yml` is also configured to run in a given docker swarm, therefore run:
+Optional: The `docker-compose.yml` is also configured to run in a given docker swarm,
+ adapt the `docker-compose.yml` to your setup and run:
 
     docker-compose build
     docker-compose push
     docker stack deploy --compose-file docker-compose.yml preprintservice
 
 
-The service is available for both setups on [localhost:2304/tweak](http://localhost:2304/tweak), 
+The service is in either way on [localhost:2304/tweak](http://localhost:2304/tweak) 
+(from the hosting node), 
 where a simple UI is provided for testing the PrePrint Service.
 Use `docker-compose down` to stop the service.
 
@@ -62,9 +66,9 @@ Use `docker-compose down` to stop the service.
 Configure the plugin in the settings and make sure the url for the PrePrint service is 
 correct:
 
-![settings](https://github.com/ChristophSchranz/Octoprint-PrePrintService/blob/master/extras/settings.png)
+![settings](https://github.com/ChristophSchranz/Octoprint-PrePrintService/blob/master/extras/settings2.png)
 
-To test the configuration, do the following steps:
+To test the whole setup, do the following steps:
 
 1. Visit [localhost:2304/tweak](http://localhost:2304/tweak), select a stl model file
    and make an extended Tweak (auto-rotation) `without` slicing. The output should be
@@ -82,7 +86,7 @@ To test the configuration, do the following steps:
    If this doesn't work, start the octoprint server per CLI with `octoprint serve`
    and track the logs. The following two lines are expected:
    
-        2019-04-07 22:28:44,301 - octoprint.plugins.preprintservice - INFO - Connection to PrePrintService on http://192.168.48.8:2304/tweak is ready, status code 200
+        2019-04-07 22:28:44,301 - octoprint.plugins.preprintservice - INFO - Connection to PrePrintService on http://192.168.48.81:2304/tweak is ready, status code 200
         2019-04-07 22:28:44,321 - octoprint.plugins.preprintservice - INFO - Connection to Octoprint server on http://192.168.48.43:5000/api/version?apikey=A943AB47727A461F9CEF9EXXXXXXXX is ready, status code 200
 
    If you see instead the following, please check the APIKEY: (403 - forbidden)
@@ -97,15 +101,9 @@ To test the configuration, do the following steps:
 If you have any troubles in setting this plugin up or tips to improve this instruction,
  please let me know!
 
-## TODO
-
-* Set Tweak options in sidebar dialog
-* plugin documentation
-
-
 ## Donation
 
-If you like this plugin, you can buy me a cup of coffee :) 
+If you like this plugin, I would be thankful about a cup of coffee :) 
 
 [![More coffee, more code](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=RG7UBJMUNLMHN&source=url)
 

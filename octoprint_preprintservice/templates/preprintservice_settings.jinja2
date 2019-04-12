@@ -17,9 +17,7 @@
             <label class="radio">{{ _('PreProcess Action') }}</label>
                 <div class="controls">
                     <input type="radio" name="tweak_action" value="tweak" data-bind="checked: settings.plugins.preprintservice.tweak_action"> {{ _('Auto-rotate only') }}
-{#                    <br>#}
                     <input type="radio" name="tweak_action" value="tweak slice" data-bind="checked: settings.plugins.preprintservice.tweak_action"> {{ _('Auto-rotate & Slice') }}
-{#                    <br>#}
                     <input type="radio" name="tweak_action" value="slice" data-bind="checked: settings.plugins.preprintservice.tweak_action"> {{ _('Slice only') }}
                 </div>
             <div class="control-group">
@@ -29,9 +27,7 @@
                     </label>
                 </div>
             </div>
-{#            <div class="checkbox">#}
-{#                <input type="checkbox" data-bind="checked: settings.plugins.preprintservice.get_tweaked_stl" checked> Receive auto-rotated model file (only for the middle option)#}
-{#            </div>#}
+
     </form>
 
     <h4>{{ _('Profiles') }}</h4>

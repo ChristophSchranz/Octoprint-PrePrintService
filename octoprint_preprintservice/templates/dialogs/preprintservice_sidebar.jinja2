@@ -29,12 +29,12 @@
                         <select data-bind="options: profiles, optionsText: 'name', optionsValue: 'key', optionsCaption: '{{ _('Select a slicing profile...') }}', value: profile, valueAllowUnset: true"></select>
                     </div>
                 </div>
-                <div class="control-group">
-                    <label class="control-label">{{ _('PreProcess Action') }}</label>
-                    <div class="checkbox">
-                        <input type="checkbox" data-bind="checked: sidebar.plugins.preprintservice.get_tweaked"> {{ _('Log the output of Slic3r to plugin_slic3r_engine.log') }}
-                    </div>
-                </div>
+{#                <div class="control-group">#}
+{#                    <label class="control-label">{{ _('PreProcess Action') }}</label>#}
+{#                    <div class="checkbox">#}
+{#                        <input type="checkbox" data-bind="checked: sidebar.plugins.preprintservice.get_tweaked"> {{ _('Log the output of Slic3r to plugin_slic3r_engine.log') }}#}
+{#                    </div>#}
+{#                </div>#}
 {#                <div class="control-group">#}
 {#                    <div class="checkbox">#}
 {#                        <input data-bind="checked: get_tweaked '{{ _('Select a slicing profile...') }}'">#}

@@ -496,6 +496,8 @@ def get_analysis_from_gcode(machinecode_path):
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "Preprintservice Plugin"
 
+#TODO: check validity of urls and api key
+#TODO: set preprint actions in slicer dialog
 
 def __plugin_load__():
 	global __plugin_implementation__

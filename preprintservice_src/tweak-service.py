@@ -70,7 +70,6 @@ def tweak_slice_file():
 
 			# 1.2) Get the profile
 			if 'profile' in request.files:
-				app.logger.info("Found profile in request")
 				profile = request.files["profile"]
 				if profile.filename == '':
 					flash('No selected profile')
@@ -81,7 +80,6 @@ def tweak_slice_file():
 					profilename = secure_filename(profile.filename)
 					app.logger.info("Uploaded new profile: {}".format(profilename))
 					profile.save(os.path.join(app.config['PROFILE_FOLDER'], profilename))
-					app.logger.info("Saved model to {}/{}".format(app.config['UPLOAD_FOLDER'], filename))
 					profile_path = os.path.join(app.config['PROFILE_FOLDER'], profilename)
 			else:
 				profile = request.form.get("profile")
@@ -136,7 +134,7 @@ def tweak_slice_file():
 				app.logger.info("Tweaking was skipped as expected.")
 
 			# 2.2) Send back tweaked file to requester
-			if octoprint_url and "tweak" in tweak_actions and "get_tweaked_stl" in tweak_actions:
+			if octoprint_url and ("get_tweaked_stl" in tweak_actions or "slice" not in tweak_actions):
 				# Upload the tweaked model via API to octoprint
 				# find the apikey in octoprint server, settings, access control
 				outfile = "{UPLOAD_FOLDER}{sep}{filename}".format(UPLOAD_FOLDER=app.config['UPLOAD_FOLDER'],
