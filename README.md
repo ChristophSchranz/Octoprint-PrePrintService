@@ -97,6 +97,11 @@ To test the configuration, do the following steps:
 If you have any troubles in setting this plugin up or tips to improve this instruction,
  please let me know!
 
+## TODO
+
+* Set Tweak options in sidebar dialog
+* plugin documentation
+
 
 ## Donation
 

@@ -1,4 +1,4 @@
-<div id="slicing_configuration_dialog" class="modal hide fade">
+<div id="slicing_configuration_dialog" class="modal hide fade" xmlns="http://www.w3.org/1999/html">
     <div class="modal-header">
         <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
         <h3 data-bind="text: title"></h3>
@@ -29,6 +29,12 @@
                         <select data-bind="options: profiles, optionsText: 'name', optionsValue: 'key', optionsCaption: '{{ _('Select a slicing profile...') }}', value: profile, valueAllowUnset: true"></select>
                     </div>
                 </div>
+{#                <div class="control-group">#}
+{#                    <label class="control-label">{{ _('PreProcess Action') }}</label>#}
+{#                    <div class="checkbox">#}
+{#                        <input type="checkbox" data-bind="checked: sidebar.plugins.preprintservice.get_tweaked"> {{ _('Log the output of Slic3r to plugin_slic3r_engine.log') }}#}
+{#                    </div>#}
+{#                </div>#}
                 <div class="control-group">
                     <label class="control-label">{{ _('Printer Profile') }}</label>
                     <div class="controls">
@@ -50,9 +56,32 @@
                         <select data-bind="options: afterSlicingOptions, optionsText: 'text', optionsValue: 'value', value: afterSlicing"></select>
                     </div>
                 </div>
+{#                <div class="control-group">#}
+{#                    <label class="control-label">{{ _('PrePrint Action') }}</label>#}
+{#                    <div class="checkbox">#}
+{#                        <input type="checkbox" data-bind="checked: sidebar.plugins.preprintservice.gettweaked"> Receive auto-rotated model file (only for the middle option)#}
+{#                    </div>#}
+{#                </div>#}
             </form>
         </div>
     </div>
+{#    #}
+{#    <div class="control-group">#}
+{#        <div class="controls">#}
+{#            <label class="checkbox">{{ _('PrePrint Action') }}#}
+{#                <input type="checkbox" data-bind="checked: sidebar.plugins.preprintservice.get_tweaked"> Receive auto-rotated model file (only for the middle option)#}
+{#            </label>#}
+{#        </div>#}
+{#    </div>#}
+{#    <div class="control-group">#}
+{#        <label class="checkbox">{{ _('PrePrint Action') }}#}
+{#            Receive auto-rotated model file (only for the middle option)#}
+{#        <div class="controls">#}
+{#            <select data-bind="options: printerProfiles.profiles.items, optionsText: 'name', optionsValue: 'id', value: printerProfile, optionsCaption: '{{ _('Select a printer profile...') }}'"></select>#}
+{#            <input type="checkbox" data-bind="checked: settings.plugins.preprintservice.get_tweaked">#}
+{#        </div>#}
+{#        </label>#}
+{#    </div>#}
     <div class="modal-footer">
         <a href="#" class="btn" data-dismiss="modal" aria-hidden="true">{{ _('Cancel') }}</a>
         <a href="#" class="btn btn-primary" data-bind="click: function() { if ($root.enableSliceButton()) { $root.slice() } }, enabled: enableSliceButton, css: {disabled: !$root.enableSliceButton()}, attr: {title: $root.sliceButtonTooltip}">{{ _('Slice') }}</a>

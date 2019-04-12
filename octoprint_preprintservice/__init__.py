@@ -24,7 +24,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 							octoprint.plugin.AssetPlugin,
 							octoprint.plugin.BlueprintPlugin,
 							octoprint.plugin.TemplatePlugin,
-							octoprint.plugin.EventHandlerPlugin):
+							octoprint.plugin.EventHandlerPlugin,
+							octoprint.plugin.WizardPlugin):
 
 	# ~~ StartupPlugin API
 	def on_after_startup(self):
@@ -41,6 +42,18 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 					apikey="asdfasdf",
 					isapikeyok=False
 					)
+
+	def get_template_vars(self):
+		return dict(url=self._settings.get(["url"]),
+					apikey=self._settings.get(["apikey"]),
+					get_tweaked=self._settings.get_boolean(["gettweaked"]))
+
+	def get_template_configs(self):
+		return [
+			dict(type="navbar", custom_bindings=False),
+			dict(type="settings", custom_bindings=False),
+			dict(type="sidebar", template="dialogs/preprintservice_sidebar.jinja2", custom_bindings=False)
+		]
 
 	# ~~ SettingsPlugin mixin
 
@@ -68,10 +81,6 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		new_apikey = self._settings.get(["apikey"]).strip()
 		if old_apikey != new_apikey:
 			self._logger.info("New apikey set: {}".format(new_apikey))
-
-	def get_template_vars(self):
-		return dict(url=self._settings.get(["url"]),
-					apikey=self._settings.get(["apikey"]))
 
 	# ~~ AssetPlugin mixin
 
@@ -183,10 +192,11 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 	# EventPlugin
 	def on_event(self, event, payload):
-		# self._logger.info("\nEVENT: {}: {}\n".format(event, payload))
 		# Extract Gcode name and set it as instance var
 		if event == "SlicingStarted":
 			self.machinecode_name = payload.get("gcode", None)
+			# get here also the tweak option
+			self._logger.info("\nEVENT: {}: {}\n".format(event, payload))
 
 	# if event == "FileAdded":
 	# 	# If the Added Name equals the self.machincode_name, delete it as it the empty duplicate
@@ -296,7 +306,11 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		if not profile_path:
 			profile_path = self._settings.get(["default_profile"])
 		profile_dict, display_name, description = self._load_profile(profile_path)
-
+		print("\n Input values: {} \n{}\n\n".format(args, kwargs))
+		print("action: {}\n".format(self._settings.global_get(["plugin_preprintservice_gettweaked"])))
+		print("action: {}\n".format(self._settings.get_boolean(["plugin_preprintservice_gettweaked"])))
+		print("action: {}\n".format(self._settings.get_all_data()))
+		# octoprint.plugin.TemplatePlugin.on_plugin_enabled()
 		# machinecode_path is a string based on a random tmpfile
 		if self.machinecode_name:
 			machinecode_path = self.machinecode_name
@@ -304,6 +318,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			path, _ = os.path.splitext(model_path)
 			machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
 		self._logger.debug("Machinecode_name: {}".format(machinecode_path))
+
+		tweak_actions = ["tweak", "slice", "get_tweaked_stl"]
 
 		# if position and isinstance(position, dict) and "x" in position and "y" in position:
 		# 	posX = position["x"]
@@ -335,8 +351,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		data = {"machinecode_name": os.path.split(machinecode_path)[-1],
 				# "center": center,
 				"octoprint_url": "http://{}:5000/api/files/local?apikey={}".format(
-					get_host_ip_address(),
-					self._settings.get(["apikey"]))}
+					get_host_ip_address(), self._settings.get(["apikey"])),
+				"tweak_actions": " ".join(tweak_actions)}
 		self._logger.info("Sending file {} and profile {} with center {} and get {}".format(
 			files.get("model"), files.get("profile"), data.get("center"), url, data.get("machinecode_name")))
 
