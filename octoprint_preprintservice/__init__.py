@@ -29,8 +29,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 	# ~~ StartupPlugin API
 	def on_after_startup(self):
-		self._logger.info("Hello from the PrePrintService plugin!")
-		self._logger.info("Settings: {}\n".format(self._settings.get_all_data()))
+		self._logger.debug("Starting PrePrintService plugin, using settings: {}".format(self._settings.get_all_data()))
 		# self._logger.info("Port: {}\n".format(self._settings.getInt(["port"])))
 
 	def get_settings_defaults(self):
@@ -48,6 +47,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 	def get_template_vars(self):
 		return dict(url=self._settings.get(["url"]),
 					apikey=self._settings.get(["apikey"]),
+					debug_logging=self._settings.get_boolean(["debug_logging"]),
 					get_tweaked_stl=self._settings.get_boolean(["get_tweaked_stl"]),
 					tweak_action=self._settings.get(["tweak_action"]))
 
@@ -61,28 +61,26 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 	# ~~ SettingsPlugin mixin
 
 	def on_settings_save(self, data):
-		self._logger.info("on_settings_save was called")
+		self._logger.debug("on_settings_save was called")
 		old_debug_logging = self._settings.get_boolean(["debug_logging"])
 		old_url = self._settings.get(["url"]).strip()
 		old_apikey = self._settings.get(["apikey"]).strip()
 		old_tweakaction = self._settings.get(["tweak_action"])
 		old_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
 
-		self._logger.info("\n\nall data: {}\n".format(data))
+		self._logger.debug("Settings: {}".format(data))
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
-		new_debug_logging = self._settings.get_boolean(["debug_logging"])
-		if old_debug_logging != new_debug_logging:
-			if new_debug_logging:
-				self._logger.setLevel(logging.DEBUG)
-			else:
-				self._logger.setLevel(logging.CRITICAL)
+		# new_debug_logging = self._settings.get_boolean(["debug_logging"])
+		# if old_debug_logging != new_debug_logging:
+		# 	if new_debug_logging:
+		# 		self._logger.setLevel(logging.DEBUG)
+		# 	else:
+		# 		self._logger.setLevel(logging.CRITICAL)
 
 		new_url = self._settings.get(["url"]).strip()
 		if old_url != new_url:
 			self._logger.info("New PrePrint Service url was set: {}".format(new_url))
-		# data["is_url_ok"] = True
-		# octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
 		new_apikey = self._settings.get(["apikey"]).strip()
 		if old_apikey != new_apikey:
@@ -90,10 +88,10 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 		new_tweakaction = self._settings.get(["tweak_action"])
 		if old_tweakaction != new_tweakaction:
-			self._logger.info("New tweak_action set: {}".format(new_tweakaction))
+			self._logger.info("New action for preprocessing set: {}".format(new_tweakaction))
 		new_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
 		if old_gettweakedstl != new_gettweakedstl:
-			self._logger.info("New get_tweaked_stl set: {}".format(new_gettweakedstl))
+			self._logger.info("New setting, getting auto-rotated stl is set to: {}".format(new_gettweakedstl))
 
 	# ~~ AssetPlugin mixin
 
@@ -290,7 +288,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			progress_report=False)
 
 	def get_slicer_default_profile(self):
-		self._logger.info("get_slicer_default_profile")
+		self._logger.debug("get_slicer_default_profile")
 		path = self._settings.get(["default_profile"])
 		if not path:
 			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default_slic3r_profile.ini")
@@ -321,7 +319,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		profile_dict, display_name, description = self._load_profile(profile_path)
 
 		# print("\n Input values: {} \n{}\n\n".format(args, kwargs))
-		print("\n\nAll data: {}\n\n".format(self._settings.get_all_data()))
+		# print("\n\nAll data: {}\n\n".format(self._settings.get_all_data()))
 		tweak_actions = list()
 		if "tweak" in self._settings.get(["tweak_action"]):
 			tweak_actions.append("tweak")
