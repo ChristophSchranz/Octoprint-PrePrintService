@@ -454,6 +454,7 @@ __plugin_name__ = "Preprintservice Plugin"
 
 # TODO: check validity of urls and api key
 # TODO: set preprint actions in slicer dialog
+# TODO: don't retrieve empty default .gco file if no slicing is done
 
 
 def __plugin_load__():
