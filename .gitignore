@@ -111,3 +111,5 @@ preprintservice_src/profiles/slicing-*
 
 OctoPrint_PrePrintService.egg-info
 
+
+octoprint_preprintservice/templates/preprintservice_slicing.jinja2.save*

@@ -34,15 +34,18 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 	def get_settings_defaults(self):
 		return dict(url="http://localhost:2304/tweak",
+					get_tweaked_stl=True,
+					tweak_action="tweak slice",
 					isurlok=False,
 					default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles",
 												 "default_slic3r_profile.ini"),
 					debug_logging=True,
-					apikey="asdfasdf",
 					isapikeyok=False,
-					get_tweaked_stl=True,
-					tweak_action="tweak slice"
+					restricted=dict(admin_only=dict(apikey="asdf"))
 					)
+
+	def get_settings_restricted_paths(self):
+		return dict(admin=[["restricted", "admin_only", "apikey"]])
 
 	def get_template_vars(self):
 		return dict(url=self._settings.get(["url"]),
