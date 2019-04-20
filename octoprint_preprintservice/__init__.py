@@ -209,7 +209,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		if "localhost" in url:
 			self._logger.warning("It's risky to set localhost in url: {}".format(url))
 		try:
-			r = requests.get(url, timeout=2, verify=False)
+			r = requests.get(url, timeout=2)
 			if r.status_code != 200:
 				self._logger.warning(
 					"Connection to PrePrint Server on {} couldn't be established, status code {}".format(url,
@@ -232,7 +232,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 				self._logger.warning("It's risky to set localhost in octoprint_url: {}".format(
 					self._settings.get(["octoprinturl"])))
 			try:
-				r = requests.get(octoprint_url, verify=False)
+				r = requests.get(octoprint_url)
 				if r.status_code != 200:
 					self._logger.warning(
 						"Connection to Octoprint server on {} couldn't be established, status code {}"
@@ -314,7 +314,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		# Try connection to PrePrintService
 		url = self._settings.get(["url"]).strip()
 		try:
-			r = requests.get(url, verify=False)
+			r = requests.get(url)
 			if r.status_code != 200:
 				self._logger.warning("Connection to {} could not be established, status code {}"
 									 .format(url, r.status_code))
@@ -341,7 +341,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 				self._logger.info("Posted request successfully to {}".format(url))
 			else:
 				self._logger.error("Got http error code {} on request {}".format(r.status_code, url))
-				self._logger.error(r.text)
+				# self._logger.error(r.text)
 				self._logger.info("Couldn't post to {}".format(url))
 				return False, "Couldn't post to {}, status code {}".format(url, r.status_code)
 
