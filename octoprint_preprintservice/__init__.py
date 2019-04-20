@@ -8,11 +8,15 @@ from collections import defaultdict
 
 import flask
 import requests
+import urllib3
+
 import octoprint.plugin
 from octoprint.util.paths import normalize as normalize_path
 
 from .profile import Profile
 
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 blueprint = flask.Blueprint("plugin.preprintservice", __name__)
 
 
@@ -209,7 +213,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		if "localhost" in url:
 			self._logger.warning("It's risky to set localhost in url: {}".format(url))
 		try:
-			r = requests.get(url, timeout=2)
+			r = requests.get(url, timeout=2, verify=False)
 			if r.status_code != 200:
 				self._logger.warning(
 					"Connection to PrePrint Server on {} couldn't be established, status code {}".format(url,
@@ -232,7 +236,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 				self._logger.warning("It's risky to set localhost in octoprint_url: {}".format(
 					self._settings.get(["octoprinturl"])))
 			try:
-				r = requests.get(octoprint_url)
+				r = requests.get(octoprint_url, verify=False)
 				if r.status_code != 200:
 					self._logger.warning(
 						"Connection to Octoprint server on {} couldn't be established, status code {}"
@@ -314,7 +318,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		# Try connection to PrePrintService
 		url = self._settings.get(["url"]).strip()
 		try:
-			r = requests.get(url)
+			r = requests.get(url, verify=False)
 			if r.status_code != 200:
 				self._logger.warning("Connection to {} could not be established, status code {}"
 									 .format(url, r.status_code))
@@ -335,7 +339,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 		# Defining the function that sends the files to the PrePrintService
 		def post_to_preprintserver(url, payload_files, payload):
-			r = requests.post(url, files=payload_files, data=payload)
+			r = requests.post(url, files=payload_files, data=payload, verify=False)
 			self._logger.info("POST to service with status code: {}".format(r.status_code))
 			if r.status_code == 200:
 				self._logger.info("Posted request successfully to {}".format(url))

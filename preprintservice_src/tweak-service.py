@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 import os
 import requests
+import urllib3
 from flask import Flask, flash, request, redirect, url_for, Response, render_template, make_response, jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import abort, RequestEntityTooLarge
 
 import logging
 import argparse
+
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
 
