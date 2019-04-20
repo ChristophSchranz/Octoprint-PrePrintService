@@ -94,9 +94,16 @@ def tweak_slice_file():
 
 			# 1.3) Get the tweak actions
 			# Get the tweak option and use extendedTweak minimize the volume as default
-			tweak_actions = request.form.get("tweak_actions").split()  # of the form: "tweak slice get_tweaked_stl")
-			if not tweak_actions:
-				tweak_actions = ["tweak", "slice", "get_tweaked_stl"]
+			tweak_actions = request.form.get("tweak_actions")  # of the form: "tweak slice get_tweaked_stl")
+			if not tweak_actions:  # This is the case in the UI mode
+				tweak_actions = list()
+				if profile_path:
+					tweak_actions.append("slice")
+				command = request.form.get("tweak_option", "Convert")
+				if command and command != "Convert":
+					tweak_actions.append("tweak")
+			else:
+				tweak_actions = tweak_actions.split()
 			if "tweak" in tweak_actions:
 				command = "extendedTweakVol"
 			app.logger.info("Using Tweaker actions: {}".format(", ".join(tweak_actions)))

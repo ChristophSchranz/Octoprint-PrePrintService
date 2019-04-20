@@ -6,7 +6,7 @@ external docker containers.
 
 ## Workflow
 
-The full workflow can be deployed either on a single machine or a octoprint server connected
+The full workflow can be deployed either on a single machine or the octoprint server connected
 to a printer plus a server.
 
 ![Workflow](/extras/workflow.png)
