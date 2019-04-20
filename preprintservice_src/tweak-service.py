@@ -155,7 +155,7 @@ def tweak_slice_file():
 				else:
 					app.logger.warning(
 						"Problem while loading tweaked stl to Octoprint server with code '{}'".format(r.status_code))
-					app.logger.warning(r.text)
+					# app.logger.warning(r.text)
 					flash("Problem while loading tweaked stl back to server with code '{}'".format(r.status_code))
 			else:
 				app.logger.info("Sending back file was skipped as expected.")
@@ -191,7 +191,7 @@ def tweak_slice_file():
 					flash("Loaded back to server with code '{}'".format(r.status_code))
 				else:
 					app.logger.warning("Problem while loading file to Octoprint server with code '{}'".format(r.status_code))
-					app.logger.warning(r.text)
+					# app.logger.warning(r.text)
 					flash("Problem while loading file back to server with code '{}'".format(r.status_code))
 				return redirect(octoprint_url)
 			else:
