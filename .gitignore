@@ -106,6 +106,7 @@ preprintservice_src/tweak-service.py.save*
 preprintservice_src/test.py
 preprintservice_src/uploads/*
 !preprintservice_src/uploads/upload_here
+preprintservice_src/profiles/profile_015mm_brim.profile
 
 preprintservice_src/profiles/slicing-*
 
