@@ -143,7 +143,7 @@ def tweak_slice_file():
 																  filename=filename, sep=os.sep)
 				app.logger.info("Sending file '{}' to URL '{}'".format(outfile, octoprint_url))
 				files = {'file': open(outfile, 'rb')}
-				r = requests.post(octoprint_url, files=files)
+				r = requests.post(octoprint_url, files=files, verify=False)
 				if r.status_code == 201:
 					app.logger.info("Loaded back tweaked stl to server with code '{}'".format(r.status_code))
 					flash("Loaded back tweaked stl to server with code '{}'".format(r.status_code))
@@ -180,7 +180,7 @@ def tweak_slice_file():
 				# outfile = "{gcode_path}".format(gcode_path=gcode_path)
 				app.logger.info("Sending file '{}' to URL '{}'".format(gcode_path, octoprint_url))
 				files = {'file': open(gcode_path, 'rb')}
-				r = requests.post(octoprint_url, files=files)
+				r = requests.post(octoprint_url, files=files, verify=False)
 				if r.status_code == 201:
 					app.logger.info("Loaded back to server with code '{}'".format(r.status_code))
 					flash("Loaded back to server with code '{}'".format(r.status_code))
