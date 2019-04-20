@@ -16,7 +16,7 @@ The following steps will be done:
 1. Slice a model using the PrePrint server Plugin.
 2. The model will be auto-rotated for a proper 3D print.
 3. The auto-rotated model will be sent back to the octoprint server.
-4. The optimized model will be sliced using [slic3r](https://slic3r.org/).
+4. The optimized model will be sliced using [Slic3r](https://slic3r.org/).
 5. The final machine code wil be sent back to the octoprint server.
 6. The printing can be started.
 
@@ -118,7 +118,7 @@ To test the whole setup, do the following steps:
    
         2019-04-07 22:27:34,746 - octoprint.plugins.preprintservice - WARNING - Connection to PrePrint Server on http://192.168.48.81:2304/asdf couldn't be established
 
-   Make also sure that your selected ``profile` file is correct.
+   Make also sure that your selected `profile` file is correct.
    
 If you have any troubles in setting this plugin up or tips to improve this instruction,
  please let me know!

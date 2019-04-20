@@ -46,7 +46,7 @@ def tweak_slice_file():
 			app.logger.debug("request on: %s", request)
 			# 0) Get url on which to upload the requested file
 			octoprint_url  = request.form.get("octoprint_url", None)
-			app.logger.info("Getting request from: {}".format(octoprint_url))
+			app.logger.info("Getting request from: {}".format(octoprint_url.split("?apikey")[0]))
 
 			# 1) Check if the input is correct
 			# 1.1) Get the model file and check for correctness
@@ -145,7 +145,7 @@ def tweak_slice_file():
 				# find the apikey in octoprint server, settings, access control
 				outfile = "{UPLOAD_FOLDER}{sep}{filename}".format(UPLOAD_FOLDER=app.config['UPLOAD_FOLDER'],
 																  filename=filename, sep=os.sep)
-				app.logger.info("Sending file '{}' to URL '{}'".format(outfile, octoprint_url))
+				app.logger.info("Sending file '{}' to URL '{}'".format(outfile, octoprint_url.split("?apikey")[0]))
 				files = {'file': open(outfile, 'rb')}
 				r = requests.post(octoprint_url, files=files, verify=False)
 				if r.status_code == 201:

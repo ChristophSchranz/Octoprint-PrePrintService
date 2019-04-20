@@ -158,7 +158,7 @@ To test the whole setup, do the following steps:
    
         2019-04-07 22:27:34,746 - octoprint.plugins.preprintservice - WARNING - Connection to PrePrint Server on http://192.168.48.81:2304/asdf couldn't be established
 
-   Make also sure that your selected ``profile` file is correct.
+   Make also sure that your selected `profile` file is correct.
    
 If you have any troubles in setting this plugin up or tips to improve this instruction,
  please let me know!
