@@ -29,7 +29,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		self._logger.debug("Starting PrePrintService plugin, using settings: {}".format(self._settings.get_all_data()))
 
 	def get_settings_defaults(self):
-		return dict(url="http://localhost:2304/tweak",
+		return dict(url="http://192.168.48.81:2304/tweak",
+					octoprinturl="http://192.168.48.43:5000/",
 					get_tweaked_stl=True,
 					tweak_action="tweak slice",
 					isurlok=False,
@@ -43,6 +44,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 	def get_template_vars(self):
 		return dict(url=self._settings.get(["url"]),
+					octoprinturl=self._settings.get(["octoprinturl"]),
 					get_tweaked_stl=self._settings.get_boolean(["get_tweaked_stl"]),
 					tweak_action=self._settings.get(["tweak_action"]))
 
@@ -56,8 +58,9 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 	# ~~ SettingsPlugin mixin
 	def on_settings_save(self, data):
 		self._logger.debug("on_settings_save was called")
-		old_url = self._settings.get(["url"]).strip()
-		old_apikey = self._settings.get(["apikey"]).strip()
+		old_url = self._settings.get(["url"])
+		old_octoprinturl = self._settings.get(["octoprinturl"]).strip()
+		old_apikey = self._settings.get(["apikey"])
 		old_tweakaction = self._settings.get(["tweak_action"])
 		old_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
 
@@ -68,9 +71,13 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		if old_url != new_url:
 			self._logger.info("New PrePrint Service url was set: {}".format(new_url))
 
+		new_octoprinturl = self._settings.get(["octoprinturl"])
+		if old_octoprinturl != new_octoprinturl:
+			self._logger.info("New Octoprint server url was set: {}".format(new_octoprinturl))
+
 		new_apikey = self._settings.get(["apikey"]).strip()
 		if old_apikey != new_apikey:
-			self._logger.info("New apikey set: {}".format(new_apikey))
+			self._logger.info("New apikey set.")
 
 		new_tweakaction = self._settings.get(["tweak_action"])
 		if old_tweakaction != new_tweakaction:
@@ -199,12 +206,14 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 	def is_slicer_configured(self):
 		# Try connection to PrePrintService
 		url = self._settings.get(["url"]).strip()
+		if "localhost" in url:
+			self._logger.warning("It's risky to set localhost in url: {}".format(url))
 		try:
 			r = requests.get(url, timeout=2)
 			if r.status_code != 200:
 				self._logger.warning(
-					"Connection to PrePrint Server on {} couldn't be established, status code {}"
-						.format(url, r.status_code))
+					"Connection to PrePrint Server on {} couldn't be established, status code {}".format(url,
+																										 r.status_code))
 				return False,
 		except requests.ConnectionError:
 			self._logger.warning("Connection to PrePrint Server on {} couldn't be established".format(url))
@@ -217,7 +226,10 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			if apikey is None:
 				self._logger.warning("API KEY not configured")
 				return False
-			octoprint_url = "http://{}:5000/api/version?apikey={}".format(get_host_ip_address(), apikey)
+			octoprint_url = os.path.join(self._settings.get(["octoprinturl"]).strip(),
+										 "api/version?apikey={}".format(apikey))
+			if "localhost" in octoprint_url:
+				self._logger.warning("It's risky to set localhost in octoprint_url: {}".format(octoprint_url))
 			try:
 				r = requests.get(octoprint_url)
 				if r.status_code != 200:
@@ -229,28 +241,13 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 				self._logger.warning("Connection to Octoprint server on {} couldn't be established".format(octoprint_url))
 				return False
 			self._logger.info("Connection to Octoprint server on {} is ready, status code {}"
-							  .format(octoprint_url.split("api/version?apikey")[0], r.status_code))
+							  .format(self._settings.get(["octoprinturl"]), r.status_code))
 			return True
 
 		import threading
 		test_octoprint_connection = threading.Thread(target=test_octoprint_connection, args=())
 		test_octoprint_connection.daemon = True
 		test_octoprint_connection.start()
-		return True
-
-	def test_url(self, url):
-		# Try connection to PrePrintService
-		url = url.strip()
-		try:
-			r = requests.get(url, timeout=2)
-			if r.status_code != 200:
-				self._logger.warning(
-					"Connection to {} couldn't be established, status code {}".format(url, r.status_code))
-				return False,
-		except requests.ConnectionError:
-			self._logger.warning("Connection to {} couldn't be established".format(url))
-			return False
-		self._logger.info("Connection to PrePrintService is ready")
 		return True
 
 	def get_slicer_properties(self):
@@ -328,11 +325,11 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		files = {'model': open(model_path, 'rb'),
 				 'profile': open(profile_path, 'rb')}  # profile path is wrong (tmp file), but model path is correct
 		data = {"machinecode_name": os.path.split(machinecode_path)[-1],
-				"octoprint_url": "http://{}:5000/api/files/local?apikey={}".format(
-					get_host_ip_address(), self._settings.get(["apikey"])),
+				"octoprint_url": os.path.join(self._settings.get(["octoprinturl"]).strip(),
+											  "api/files/local?apikey={}".format(self._settings.get(["apikey"]).strip())),
 				"tweak_actions": " ".join(tweak_actions)}
-		self._logger.info("Sending file {} and profile {} to {} and get {}".format(
-			model_path, profile_path, url, data.get("machinecode_name")))
+		self._logger.info("Sending file {} and profile {} to {} and get {} back to {}.".format(
+			model_path, profile_path, url, data.get("machinecode_name"), data.get("octoprint_url").split("?apikey")[0]))
 
 		# Defining the function that sends the files to the PrePrintService
 		def post_to_preprintserver(url, payload_files, payload):
