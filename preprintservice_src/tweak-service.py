@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-import os, sys
+import os
 import requests
-import flask
 from flask import Flask, flash, request, redirect, url_for, Response, render_template, make_response, jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import abort, RequestEntityTooLarge
 
-import json
-import tempfile
 import logging
-import time
 import argparse
 
 app = Flask(__name__)
@@ -32,8 +28,6 @@ for path in app.config['SLIC3R_PATHS']:
 	if os.path.isfile(path):
 		app.config['SLIC3R_PATH'] = path
 		break
-
-# OCTOPRINT_URL = "http://192.168.48.43/api/files/local?apikey=A943AB47727A461F9CEF9ECD2E4E1E60"
 
 
 def allowed_file(filename):
@@ -95,6 +89,7 @@ def tweak_slice_file():
 			# 1.3) Get the tweak actions
 			# Get the tweak option and use extendedTweak minimize the volume as default
 			tweak_actions = request.form.get("tweak_actions")  # of the form: "tweak slice get_tweaked_stl")
+			command = "Convert"
 			if not tweak_actions:  # This is the case in the UI mode
 				tweak_actions = list()
 				if profile_path:
@@ -125,9 +120,9 @@ def tweak_slice_file():
 			# 2.1) retrieve the model file and perform the tweaking
 			if "tweak" in tweak_actions:
 				cmd = "python3 {curpath}Tweaker-3{sep}Tweaker.py -i {upload_folder}{sep}{input} {cmd} " \
-					  "{output} -o {upload_folder}{sep}tweaked_{input}" \
-					.format(curpath=CURPATH, sep=os.sep, upload_folder=app.config['UPLOAD_FOLDER'], input=filename,
-							cmd=cmd_map[command], output=cmd_map["binary STL"])
+					  "{output} -o {upload_folder}{sep}tweaked_{input}".format(
+					curpath=CURPATH, sep=os.sep, upload_folder=app.config['UPLOAD_FOLDER'], input=filename,
+					cmd=cmd_map[command], output=cmd_map["binary STL"])
 
 				app.logger.info("Running Tweak with command: '{}'".format(cmd))
 				ret = os.popen(cmd)
