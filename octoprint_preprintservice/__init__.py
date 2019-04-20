@@ -229,16 +229,18 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 			octoprint_url = os.path.join(self._settings.get(["octoprinturl"]).strip(),
 										 "api/version?apikey={}".format(apikey.strip()))
 			if "localhost" in octoprint_url:
-				self._logger.warning("It's risky to set localhost in octoprint_url: {}".format(octoprint_url))
+				self._logger.warning("It's risky to set localhost in octoprint_url: {}".format(
+					self._settings.get(["octoprinturl"])))
 			try:
 				r = requests.get(octoprint_url, verify=False)
 				if r.status_code != 200:
 					self._logger.warning(
 						"Connection to Octoprint server on {} couldn't be established, status code {}"
-							.format(octoprint_url, r.status_code))
+							.format(self._settings.get(["octoprinturl"]), r.status_code))
 					return False
 			except requests.ConnectionError:
-				self._logger.warning("Connection to Octoprint server on {} couldn't be established".format(octoprint_url))
+				self._logger.warning("Connection to Octoprint server on {} couldn't be established".format(
+					self._settings.get(["octoprinturl"])))
 				return False
 			self._logger.info("Connection to Octoprint server on {} is ready, status code {}"
 							  .format(self._settings.get(["octoprinturl"]), r.status_code))
