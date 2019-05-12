@@ -45,8 +45,11 @@ def tweak_slice_file():
 		if request.method == 'POST':
 			app.logger.debug("request on: %s", request)
 			# 0) Get url on which to upload the requested file
-			octoprint_url  = request.form.get("octoprint_url", None)
-			app.logger.info("Getting request from: {}".format(octoprint_url.split("?apikey")[0]))
+			octoprint_url = request.form.get("octoprint_url", None)
+			if octoprint_url:
+				app.logger.info("Getting request from octoprint server: {}".format(octoprint_url.split("?apikey")[0]))
+			else:
+				app.logger.info("Getting request")
 
 			# 1) Check if the input is correct
 			# 1.1) Get the model file and check for correctness
