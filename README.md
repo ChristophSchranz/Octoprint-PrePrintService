@@ -1,8 +1,11 @@
 # OctoPrint-PrePrintService
 
-This plugin supports your 3D printing workflow by featuring an **auto-rotation** and **slicing** service.
-As both tasks are very computation-intensive, they can optionally be outsourced to 
-external docker containers.
+This service supports your 3D printing workflow by featuring **auto-rotation** 
+and **slicing** functionality.
+
+The PrePrint Service is based on:
+* The **auto-rotation** algorithm for FDM 3D print [Tweaker-3](https://github.com/ChristophSchranz/Tweaker-3)
+* The **slicing software** [Slic3r](https://slic3r.org/)
 
 ## Workflow
 
@@ -17,7 +20,7 @@ The following steps will be done:
 2. The model will be auto-rotated for a proper 3D print.
 3. The auto-rotated model will be sent back to the octoprint server.
 4. The optimized model will be sliced using [Slic3r](https://slic3r.org/).
-5. The final machine code wil be sent back to the octoprint server.
+5. The final machine code will be sent back to the octoprint server.
 6. The printing can be started.
 
 Each step is optional and can be set in the settings.
@@ -25,15 +28,13 @@ Each step is optional and can be set in the settings.
 ## Requirements
 
 1. One server node that is connected to your 3D printer, like a raspberry pi.
-1. One server node for pre-processing, which has at least 2GHz CPU frequency. If the node connected
+2. One server node for pre-processing, which has at least 2GHz CPU frequency. If the node connected
    to the printer is strong enough, one server suffices.
-1. Install [Docker](https://www.docker.com/community-edition#/download) version **1.10.0+**
+3. Optional: Install [Docker](https://www.docker.com/community-edition#/download) version **1.10.0+**
+   and [Docker Compose](https://docs.docker.com/compose/install/) version **1.6.0+**
    on the more powerful node.
-2. Install [Docker Compose](https://docs.docker.com/compose/install/) version **1.6.0+**
-   on the more powerful node.
-3. Optional: Install [Docker Swarm](https://www.youtube.com/watch?v=x843GyFRIIY)
-
-
+   
+   
 ## Setup
 
 ### 1. Install the Plugin
@@ -41,19 +42,10 @@ Each step is optional and can be set in the settings.
 Install the PrePrint Server plugin via the bundled [Plugin Manager](http://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
 or manually using this URL on the Printer-Controller
 
-    pip install "https://github.com/christophschranz/OctoPrint-PrePrintService/archive/master.zip"
-    
-If you read the label `Using PrePrint Service` in the navigation bar of the octoprint server, 
-the installation was successful.
-![OctoPrint_navbar](/extras/OctoPrint_navbar.png)
-
-
-### 2. Install the PrePrint Service
-
-In order to make the service highly available, the PrePrint Service should be deployed
- in docker. If you are
+In order to make the service highly available, it is recommended to deploy the PrePrint 
+Service in docker. If you are
 not familiar with docker yet, have a quick look at the links in the 
-[requirements-section](#requirements) and install it on the performant node.
+[requirements-section](#requirements).
 
 Then run the application locally with:
 
