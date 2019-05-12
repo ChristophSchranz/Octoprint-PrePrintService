@@ -41,10 +41,11 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 					default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles",
 												 "default_slic3r_profile.ini"),
 					isapikeyok=False,
-					restricted=dict(admin_only=dict(apikey="asdf")))
+					apikey="initial value")
 
 	def get_settings_restricted_paths(self):
-		return dict(admin=[["restricted", "admin_only", "apikey"]])
+		# self._logger.info("\nAPIKEY: {}\n".format(self._settings.get(["apikey"])))
+		return dict(admin=[["apikey"]])
 
 	def get_template_vars(self):
 		return dict(url=self._settings.get(["url"]),
@@ -65,6 +66,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 		old_url = self._settings.get(["url"])
 		old_octoprinturl = self._settings.get(["octoprinturl"]).strip()
 		old_apikey = self._settings.get(["apikey"])
+
 		old_tweakaction = self._settings.get(["tweak_action"])
 		old_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
 
@@ -81,7 +83,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
 		new_apikey = self._settings.get(["apikey"]).strip()
 		if old_apikey != new_apikey:
-			self._logger.info("New apikey set.")
+			self._logger.info("New apikey was set.")
+			# self._logger.info("\nNew apikey: {}\n\n".format(new_apikey))
 
 		new_tweakaction = self._settings.get(["tweak_action"])
 		if old_tweakaction != new_tweakaction:
