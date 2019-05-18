@@ -16,7 +16,7 @@ The full workflow can be deployed either on a single machine or on two separated
 The following steps will be done:
 
 1. Slice a model using the PrePrint server Plugin.
-2. The model will be auto-rotated for a proper 3D print by the [Tweaker-3](https://github.com/ChristophSchranz/Tweaker-3) Software
+2. The model will be auto-rotated for a proper 3D print by the [Tweaker-3](https://github.com/ChristophSchranz/Tweaker-3) software.
 3. The auto-rotated model will be sent back to the octoprint server.
 4. The optimized model will be sliced using [Slic3r](https://slic3r.org/).
 5. The final machine code will be sent back to the octoprint server.
@@ -29,7 +29,7 @@ Each step is optional and can be set in the settings.
 1. One server node that is connected to your 3D printer, like a raspberry pi.
 2. One server node for pre-processing, which has at least 2GHz CPU frequency. If the node connected
    to the printer is strong enough, one server suffices.
-3. Optional: Install [Docker](https://www.docker.com/community-edition#/download) version **1.10.0+**
+3. Optional: Install [Docker](https://www.docker.com/) version **1.10.0+**
    and [Docker Compose](https://docs.docker.com/compose/install/) version **1.6.0+**
    on the more powerful node.
    
