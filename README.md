@@ -4,20 +4,19 @@ This service supports your 3D printing workflow by utilizing **auto-rotation**
 and **slicing** functionality.
 
 The PrePrint Service is based on:
-* The **auto-rotation** algorithm for FDM 3D print [Tweaker-3](https://github.com/ChristophSchranz/Tweaker-3)
-* The **slicing software** [Slic3r](https://slic3r.org/)
+* The **auto-rotation** software for FDM 3D printing [Tweaker-3](https://github.com/ChristophSchranz/Tweaker-3)
+* The **slicing** software [Slic3r](https://slic3r.org/)
 
 ## Workflow
 
-The full workflow can be deployed either on a single machine or the octoprint server connected
-to a printer plus a server.
+The full workflow can be deployed either on a single machine or on two separated nodes as described below:
 
 ![Workflow](/extras/workflow.png)
 
 The following steps will be done:
 
 1. Slice a model using the PrePrint server Plugin.
-2. The model will be auto-rotated for a proper 3D print by the [Tweaker](https://github.com/ChristophSchranz/Tweaker-3) Software
+2. The model will be auto-rotated for a proper 3D print by the [Tweaker-3](https://github.com/ChristophSchranz/Tweaker-3) Software
 3. The auto-rotated model will be sent back to the octoprint server.
 4. The optimized model will be sliced using [Slic3r](https://slic3r.org/).
 5. The final machine code will be sent back to the octoprint server.
@@ -61,9 +60,8 @@ Optional: The `docker-compose.yml` is also configured to run in a given docker s
     docker-compose push
     docker stack deploy --compose-file docker-compose.yml preprintservice
 
-
 The service is available [localhost:2304/tweak](http://localhost:2304/tweak) 
-(from the hosting node), 
+(on the hosting node), 
 where a simple UI is provided for testing the PrePrint Service.
 Use `docker-compose down` to stop the service. (If you ever wish ;) )
 
@@ -72,7 +70,7 @@ Use `docker-compose down` to stop the service. (If you ever wish ;) )
 
 ## Configuration
 
-Configure the plugin in the settings and make sure the url for the PrePrint service is 
+Configure the plugin in the settings and make sure the url for the PrePrint service is set
 correct:
 
 ![settings](/extras/settings2.png)
@@ -123,8 +121,9 @@ If you have any troubles in setting this plugin up or tips to improve this instr
 
 ## Donation
 
-This plugin and the auto-rotation module Tweaker were developed in my spare time.
-If you like the functionality, I would be thankful about a cup of coffee :) 
+This plugin, as well as the auto-rotation module 
+[Tweaker-3](https://github.com/ChristophSchranz/Tweaker-3) was developed in my spare time.
+If you like it, I would be thankful about a cup of coffee :) 
 
 [![More coffee, more code](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=RG7UBJMUNLMHN&source=url)
 
