@@ -1,6 +1,6 @@
 # OctoPrint-PrePrintService
 
-This service supports your 3D printing workflow by featuring **auto-rotation** 
+This service supports your 3D printing workflow by utilizing **auto-rotation** 
 and **slicing** functionality.
 
 The PrePrint Service is based on:
@@ -17,7 +17,7 @@ to a printer plus a server.
 The following steps will be done:
 
 1. Slice a model using the PrePrint server Plugin.
-2. The model will be auto-rotated for a proper 3D print.
+2. The model will be auto-rotated for a proper 3D print by the [Tweaker](https://github.com/ChristophSchranz/Tweaker-3) Software
 3. The auto-rotated model will be sent back to the octoprint server.
 4. The optimized model will be sliced using [Slic3r](https://slic3r.org/).
 5. The final machine code will be sent back to the octoprint server.
@@ -65,7 +65,7 @@ Optional: The `docker-compose.yml` is also configured to run in a given docker s
 The service is available [localhost:2304/tweak](http://localhost:2304/tweak) 
 (from the hosting node), 
 where a simple UI is provided for testing the PrePrint Service.
-Use `docker-compose down` to stop the service. (If you ever wish ;)
+Use `docker-compose down` to stop the service. (If you ever wish ;) )
 
 ![PrePrint Service](/extras/PrePrintService.png)
 
@@ -77,6 +77,12 @@ correct:
 
 ![settings](/extras/settings2.png)
 
+Finally, **click** on the **`Slice`-Button** of uploaded STL-Models and 
+**produce printable machinecode** via this Preprocessing-Plugin.
+
+
+
+## Testing
 To test the whole setup, do the following steps:
 
 1. Visit [localhost:2304/tweak](http://localhost:2304/tweak), select a stl model file
@@ -117,7 +123,8 @@ If you have any troubles in setting this plugin up or tips to improve this instr
 
 ## Donation
 
-If you like this plugin, I would be thankful about a cup of coffee :) 
+This plugin and the auto-rotation module Tweaker were developed in my spare time.
+If you like the functionality, I would be thankful about a cup of coffee :) 
 
 [![More coffee, more code](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=RG7UBJMUNLMHN&source=url)
 
