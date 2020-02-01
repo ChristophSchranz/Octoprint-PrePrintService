@@ -152,11 +152,13 @@ def tweak_slice_file():
 				files = {'file': open(outfile, 'rb')}
 				r = requests.post(octoprint_url, files=files, verify=False)
 				if r.status_code == 201:
-					app.logger.info("Loaded back tweaked stl to server with code '{}'".format(r.status_code))
-					flash("Loaded back tweaked stl to server with code '{}'".format(r.status_code))
+					app.logger.info("Sended back tweaked stl to server {} with code '{}'".
+									format(octoprint_url.split("?apikey")[0], r.status_code))
+					flash("Sended back tweaked stl to server {} with code '{}'".format(
+						octoprint_url.split("?apikey")[0], r.status_code))
 				else:
-					app.logger.warning(
-						"Problem while loading tweaked stl to Octoprint server with code '{}'".format(r.status_code))
+					app.logger.warning("Problem while loading tweaked stl to Octoprint server {} with code '{}'"
+									   .format(octoprint_url.split("?apikey")[0], r.status_code))
 					# app.logger.warning(r.text)
 					flash("Problem while loading tweaked stl back to server with code '{}'".format(r.status_code))
 			else:
@@ -185,19 +187,22 @@ def tweak_slice_file():
 				# Upload a model via API to octoprint
 				# find the apikey in octoprint server, settings, access control
 				# outfile = "{gcode_path}".format(gcode_path=gcode_path)
-				app.logger.info("Sending file '{}' to URL '{}'".format(gcode_path, octoprint_url))
+				app.logger.info("Sending file '{}' to URL '{}'".format(gcode_path, octoprint_url.split("?apikey")[0]))
 				files = {'file': open(gcode_path, 'rb')}
 				r = requests.post(octoprint_url, files=files, verify=False)
 				if r.status_code == 201:
-					app.logger.info("Loaded back to server with code '{}'".format(r.status_code))
-					flash("Loaded back to server with code '{}'".format(r.status_code))
+					app.logger.info("Sended back tweaked stl to server {} with code '{}'".
+									format(octoprint_url.split("?apikey")[0],  r.status_code))
+					flash("Sended back tweaked stl to server {} with code '{}'".format(
+						octoprint_url.split("?apikey")[0], r.status_code))
 				else:
-					app.logger.warning("Problem while loading file to Octoprint server with code '{}'".format(r.status_code))
+					app.logger.warning("Problem while loading file to Octoprint server {} with code '{}'".format(
+						octoprint_url.split("?apikey")[0], r.status_code))
 					# app.logger.warning(r.text)
 					flash("Problem while loading file back to server with code '{}'".format(r.status_code))
 				return redirect(octoprint_url)
 			else:
-				# handling the download of the binary data, either tweaked stl or gcode
+				app.logger.debug("Handling the download of the binary data, either tweaked stl or gcode.")
 				if gcode_path:  # model was sliced, return gcode
 					if request.headers.get('Accept') == "text/plain":
 						response = Response(open(gcode_path, 'rb').read())
