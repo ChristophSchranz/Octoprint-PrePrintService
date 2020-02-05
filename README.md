@@ -108,12 +108,12 @@ PrePrint-Service Plugin.. After some seconds a `.gco` file should be uploaded. N
    `.gco` file with only one line and 83 bytes can appear. This is expected and should be overwritten
    afterwards after a short time.
    If this doesn't work, start the octoprint server per CLI with `octoprint serve`
-   and track the logs. The following two lines are expected:
+   and track the logs via `tail -f .octoprint/logs/octoprint.log`. The following two lines are expected:
 
         2019-04-07 22:28:44,301 - octoprint.plugins.preprintservice - INFO - Connection to PrePrintService on http://192.168.48.81:2304/tweak is ready, status code 200
         2019-04-07 22:28:44,321 - octoprint.plugins.preprintservice - INFO - Connection to Octoprint server on http://192.168.48.43:5000/api/version?apikey=A943AB47727A461F9CEF9EXXXXXXXX is ready, status code 200
 
-   If the the Octoprint Server's URL is invalid, you will see this:
+   If the the Octoprint Server's URL is invalid, you will see this: This means, that the there is no response on the url and you should test your url in bash via `ping` and `curl`.
 
         2019-04-07 22:27:34,746 - octoprint.plugins.preprintservice - WARNING - "Connection to Octoprint server on http://192.168.48.43:5000 couldn't be established"
 
@@ -123,9 +123,12 @@ PrePrint-Service Plugin.. After some seconds a `.gco` file should be uploaded. N
 
    If the the PrePrint Server can't be reached, you will see this:
 
-        2019-04-07 22:27:34,746 - octoprint.plugins.preprintservice - WARNING - Connection to PrePrint Server on http://192.168.48.81:2304/asdf couldn't be established
+        2019-04-07 22:27:34,746 - octoprint.plugins.preprintservice - WARNING - Connection to PrePrint Server on http://192.168.48.81:2304/tweak couldn't be established
 
-   Make also sure that your selected `profile` file is correct.
+   Make also sure that your selected `profile` file is correct. An invalid profile would look result in:
+
+        2020-02-05 21:20:28,777 - octoprint.plugins.preprintservice - ERROR - Got http error code 500 on request http://192.168.48.48:2304/tweak
+        2020-02-05 21:20:28,778 - octoprint.plugins.preprintservice - INFO - Couldn't post to http://192.168.48.48:2304/tweak
 
 If you have any troubles in setting this plugin up or tips to improve this instruction,
  please let me know!

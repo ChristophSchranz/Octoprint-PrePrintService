@@ -221,7 +221,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 				self._logger.warning(
 					"Connection to PrePrint Server on {} couldn't be established, status code {}".format(url,
 																										 r.status_code))
-				return False,
+				return False
 		except requests.ConnectionError:
 			self._logger.warning("Connection to PrePrint Server on {} couldn't be established".format(url))
 			return False
