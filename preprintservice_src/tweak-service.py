@@ -31,11 +31,14 @@ if len(CURPATH) <= 2:
 app.config['UPLOAD_FOLDER'] = os.path.join(CURPATH, "uploads")
 app.config['PROFILE_FOLDER'] = os.path.join(CURPATH, "profiles")
 app.config['DEFAULT_PROFILE'] = os.path.join(app.config['PROFILE_FOLDER'], "profile_015mm_none.ini")
-app.config['SLIC3R_PATHS'] = ["/Slic3r/slic3r-dist/slic3r", "/home/chris/Documents/software/Slic3r/Slic3rPE-1.41.2+linux64-full-201811221508/slic3r"]
+app.config['SLIC3R_PATHS'] = ["/Slic3r/slic3r-dist/bin/prusa-slicer",
+							  "/home/chris/Documents/software/Slic3r/Slic3rPE-1.41.2+linux64-full-201811221508/slic3r"]
 for path in app.config['SLIC3R_PATHS']:
 	if os.path.isfile(path):
 		app.config['SLIC3R_PATH'] = path
 		break
+if 'SLIC3R_PATH' not in app.config:
+	raise Exception("All Slic3r paths are invalid. Check them manually: ", app.config['SLIC3R_PATHS'])
 
 
 def allowed_file(filename):
@@ -171,7 +174,8 @@ def tweak_slice_file():
 			# 3) Slice the tweaked model using Slic3r
 			# Slice the file if it is set, else set gcode_path to None
 			if profile_path and "slice" in tweak_actions:
-				cmd = "{SLIC3R_PATH} {UPLOAD_FOLDER}{sep}{filename} --load {profile} -o {gcode_path}".format(
+				cmd = "{SLIC3R_PATH} --export-gcode --repair --center 0,0 {UPLOAD_FOLDER}{sep}{filename} " \
+					  "--load {profile} --output {gcode_path}".format(
 					sep=os.sep, SLIC3R_PATH=app.config['SLIC3R_PATH'], UPLOAD_FOLDER=app.config['UPLOAD_FOLDER'],
 					filename=filename, profile=profile_path, gcode_path=gcode_path)
 				app.logger.info("Slicing the tweaked model with command: {}".format(cmd))
@@ -206,17 +210,18 @@ def tweak_slice_file():
 					flash("Problem while loading file back to server with code '{}'".format(r.status_code))
 				return redirect(octoprint_url)
 			else:
-				app.logger.debug("Handling the download of the binary data, either tweaked stl or gcode.")
 				if gcode_path:  # model was sliced, return gcode
+					app.logger.debug("Handling the download of '{}'.".format(gcode_path))
 					if request.headers.get('Accept') == "text/plain":
 						response = Response(open(gcode_path, 'rb').read())
 					else:
 						response = Response(open(gcode_path, 'rb').read(), mimetype='application/octet-stream')
-						response.headers['Content-Disposition'] = "inline; filename=" + gcode_path
+						response.headers['Content-Disposition'] = "inline; filename=" + machinecode_name
 					response.headers['Access-Control-Allow-Origin'] = "*"
 				else:  # model was not sliced, return tweaked model
 					tweaked_file_path = "{upload_folder}{sep}{input}".format(
 						sep=os.sep, upload_folder=app.config['UPLOAD_FOLDER'], input=filename)
+					app.logger.debug("Handling the download of '{}'.".format(tweaked_file_path))
 					if request.headers.get('Accept') == "text/plain":
 						response = Response(open(tweaked_file_path, 'rb').read())
 					else:

@@ -6,7 +6,7 @@ services:
     build:
       context: preprintservice_src/
       args:
-        - SLIC3R_VERSION=https://github.com/prusa3d/Slic3r/releases/download/version_1.41.3/Slic3rPE-1.41.3+linux64-full-201902121303.tar.bz2
+        - SLIC3R_VERSION=https://github.com/prusa3d/PrusaSlicer/releases/download/version_2.2.0/PrusaSlicer-2.2.0+linux-x64-202003211856.tar.bz2
     ports:
       - 2304:2304
     restart: always
