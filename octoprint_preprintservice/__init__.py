@@ -13,8 +13,10 @@ import urllib3
 import octoprint.plugin
 from octoprint.util.paths import normalize as normalize_path
 
-from .profile import Profile
-
+try:
+	from .profile import Profile
+except:
+	from profile import Profile
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 blueprint = flask.Blueprint("plugin.preprintservice", __name__)
@@ -457,6 +459,7 @@ def get_analysis_from_gcode(machinecode_path):
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "Preprintservice Plugin"
+__plugin_pythoncompat__ = ">=2.7,<4"
 
 # TODO: check validity of urls and api key
 # TODO: set preprint actions in slicer dialog

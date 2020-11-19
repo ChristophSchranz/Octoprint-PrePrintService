@@ -131,7 +131,7 @@ def tweak_slice_file():
 			# 2.1) retrieve the model file and perform the tweaking
 			if "tweak" in tweak_actions:
 				cmd = "{pythonpath} {curpath}Tweaker-3{sep}Tweaker.py -i {upload_folder}{sep}{input} {cmd} " \
-					  "{output} -o {upload_folder}{sep}{input}".format(pythonpath=sys.executable,
+					  "{output} -o {upload_folder}{sep}tweaked_{input}".format(pythonpath=sys.executable,
 					curpath=CURPATH, sep=os.sep, upload_folder=app.config['UPLOAD_FOLDER'], input=filename,
 					cmd=cmd_map[command], output=cmd_map["binary STL"])
 
@@ -140,6 +140,7 @@ def tweak_slice_file():
 				response = ret.read()
 				if response == "":
 					app.logger.info("Tweaking was successful")
+					filename = "tweaked_{}".format(filename)
 				else:
 					app.logger.error("Tweaking was executed with the warning: {}.".format(response))
 			else:
