@@ -1,9 +1,6 @@
 FROM python:3.6
 MAINTAINER Christoph Schranz <christoph.schranz@salzburgresearch.at>
 
-# Copy the content of this folder into the hosts home directory and install the requirements first.
-ADD requirements.txt .
-RUN pip install -r requirements.txt
 RUN mkdir /tmp || true
 
 
@@ -47,6 +44,10 @@ RUN apt-get update && apt-get install -y \
 
 # Settings storage
 RUN mkdir -p /home/slic3r/.local/share/
+
+# Copy the content of this folder into the hosts home directory and install the requirements first.
+ADD requirements.txt .
+RUN pip install -r requirements.txt
 
 ADD . /src/.
 

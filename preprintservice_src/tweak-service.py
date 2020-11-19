@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
+# must be running in ubuntu within a Docker container
+
 import os
+import sys
+
 import requests
 import urllib3
 from flask import Flask, flash, request, redirect, url_for, Response, render_template, make_response, jsonify
@@ -21,7 +25,7 @@ ALLOWED_EXTENSIONS = {'stl', '3mf', 'obj'}
 # set current path or use /src/, as docker use that path but doesn't know __file__
 CURPATH = os.path.dirname(os.path.abspath(__file__)) + os.sep
 if len(CURPATH) <= 2:
-	app.logger.error("__file__ too short, setting curpath hard.")
+	app.logger.error("__file__ too short, setting curpath to /src/.")
 	CURPATH = "/src/"
 
 app.config['UPLOAD_FOLDER'] = os.path.join(CURPATH, "uploads")
@@ -55,7 +59,7 @@ def tweak_slice_file():
 			# 1.1) Get the model file and check for correctness
 			if 'model' not in request.files:
 				return jsonify('No model file in request')
-			# manage the file
+			# load the file
 			uploaded_file = request.files['model']
 			# if no file was selected, submit an empty one
 			if uploaded_file.filename == '':
@@ -110,8 +114,8 @@ def tweak_slice_file():
 				command = "extendedTweakVol"
 			app.logger.info("Using Tweaker actions: {}".format(", ".join(tweak_actions)))
 			cmd_map = dict({"Tweak": "",
-							"extendedTweak": "-x",
-							"extendedTweakVol": "-x -vol",
+							"extendedTweak": "-x --minimize surfaces",
+							"extendedTweakVol": "-x",
 							"Convert": "-c",
 							"ascii STL": "-t asciistl",
 							"binary STL": "-t binarystl"})
@@ -126,8 +130,8 @@ def tweak_slice_file():
 
 			# 2.1) retrieve the model file and perform the tweaking
 			if "tweak" in tweak_actions:
-				cmd = "python3 {curpath}Tweaker-3{sep}Tweaker.py -i {upload_folder}{sep}{input} {cmd} " \
-					  "{output} -o {upload_folder}{sep}tweaked_{input}".format(
+				cmd = "{pythonpath} {curpath}Tweaker-3{sep}Tweaker.py -i {upload_folder}{sep}{input} {cmd} " \
+					  "{output} -o {upload_folder}{sep}{input}".format(pythonpath=sys.executable,
 					curpath=CURPATH, sep=os.sep, upload_folder=app.config['UPLOAD_FOLDER'], input=filename,
 					cmd=cmd_map[command], output=cmd_map["binary STL"])
 
@@ -138,7 +142,6 @@ def tweak_slice_file():
 					app.logger.info("Tweaking was successful")
 				else:
 					app.logger.error("Tweaking was executed with the warning: {}.".format(response))
-				filename = "tweaked_{}".format(filename)
 			else:
 				app.logger.info("Tweaking was skipped as expected.")
 
