@@ -1,0 +1,30 @@
+    <!doctype html>
+    <title>Web Tweaker</title>
+    <h1>Upload a 3mf or stl file.</h1>
+    <form action="" method="POST" enctype="multipart/form-data">
+      <p><input type="file" name="model"></p>
+        Choose what to do with the file:
+        <br>
+    <input type="radio" value="Convert" name="tweak_option"> Nothing
+        <br>
+    <input type="radio" value="Tweak" name="tweak_option"> Simple Tweak
+        <br>
+    <input type="radio" value="extendedTweak" name="tweak_option" checked="checked"> extended Tweak, minimize support surface
+        <br>
+    <input type="radio" value="extendedTweakVol" name="tweak_option"> extended Tweak, minimize support volume (recommended)
+        <br>
+        <br>
+        Choose the profile
+        <br>
+        <td><input type="radio" value=no_slicing name="profile" checked="checked"> No Slicing</td>
+        <br>
+        {% for profile in profiles %}
+        <tr>
+            <td><input type="radio" value={{profile}} name="profile"> {{profile}}</td>
+            <br>
+        </tr>
+        {% endfor %}
+    <br>
+
+      <input type="submit" value="Submit">
+    </form>
