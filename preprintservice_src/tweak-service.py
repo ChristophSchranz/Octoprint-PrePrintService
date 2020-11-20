@@ -38,7 +38,8 @@ for path in app.config['SLIC3R_PATHS']:
 		app.config['SLIC3R_PATH'] = path
 		break
 if 'SLIC3R_PATH' not in app.config:
-	raise Exception("All Slic3r paths are invalid. Check them manually: ", app.config['SLIC3R_PATHS'])
+	app.logger.warning("The provided Slic3r paths are invalid, please update them for slicing: {}".format(
+		app.config['SLIC3R_PATHS']))
 
 
 def allowed_file(filename):
@@ -122,6 +123,10 @@ def tweak_slice_file():
 							"Convert": "-c",
 							"ascii STL": "-t asciistl",
 							"binary STL": "-t binarystl"})
+			if 'SLIC3R_PATH' not in app.config and "slice" in tweak_actions:
+				app.logger.error("The provided Slic3r paths are invalid, therefore slicing is not possible! {}".format(
+					app.config['SLIC3R_PATHS']))
+				return redirect(request.url)
 
 			# 1.4) Get the machinecode_name, if slicing was chosen
 			if profile_path:
