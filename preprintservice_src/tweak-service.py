@@ -179,7 +179,7 @@ def tweak_slice_file():
 			# 3) Slice the tweaked model using Slic3r
 			# Slice the file if it is set, else set gcode_path to None
 			if profile_path and "slice" in tweak_actions:
-				cmd = "{SLIC3R_PATH} --export-gcode --repair --center 0,0 {UPLOAD_FOLDER}{sep}{filename} " \
+				cmd = "{SLIC3R_PATH} --export-gcode --repair {UPLOAD_FOLDER}{sep}{filename} " \
 					  "--load {profile} --output {gcode_path}".format(
 					sep=os.sep, SLIC3R_PATH=app.config['SLIC3R_PATH'], UPLOAD_FOLDER=app.config['UPLOAD_FOLDER'],
 					filename=filename, profile=profile_path, gcode_path=gcode_path)
