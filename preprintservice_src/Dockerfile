@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.8
 MAINTAINER Christoph Schranz <christoph.schranz@salzburgresearch.at>
 
 RUN mkdir /tmp || true
@@ -8,7 +8,7 @@ RUN mkdir /tmp || true
 RUN apt-get update && apt-get install -y \
   freeglut3 \
   libgtk2.0-dev \
-  libwxgtk3.0-dev \
+  libwxgtk3.0-gtk3-dev \
   libwx-perl \
   libxmu-dev \
   libgl1-mesa-glx \
@@ -54,7 +54,7 @@ ADD . /src/.
 # Clone if Tweaker-3 doesn't exist, and pull.
 RUN ls /src/Tweaker-3/README.md  > /dev/null 2>&1  \
   || (echo "Tweaker not found, cloning repository" \
-    && git clone https://github.com/ChristophSchranz/Tweaker-3 /src/Tweaker-3) \
+  && git clone https://github.com/ChristophSchranz/Tweaker-3 /src/Tweaker-3) \
   && cd /src/Tweaker-3 \
   && git pull
 
