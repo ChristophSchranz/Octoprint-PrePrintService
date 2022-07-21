@@ -1,5 +1,5 @@
 FROM python:3.8
-MAINTAINER Christoph Schranz <christoph.schranz@salzburgresearch.at>
+LABEL maintainer="Christoph Schranz <christoph.schranz@salzburgresearch.at>"
 
 RUN mkdir /tmp || true
 
