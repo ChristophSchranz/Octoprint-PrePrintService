@@ -19,7 +19,6 @@ except:
 	from profile import Profile
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-blueprint = flask.Blueprint("plugin.preprintservice", __name__)
 
 
 class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
