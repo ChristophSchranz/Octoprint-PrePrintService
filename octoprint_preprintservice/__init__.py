@@ -11,447 +11,374 @@ import requests
 import urllib3
 
 import octoprint.plugin
+from octoprint.slicing import SlicingProfile
 from octoprint.util.paths import normalize as normalize_path
+from octoprint.filemanager.destinations import FileDestinations
 
 try:
-	from .profile import Profile
+    from .profile import Profile
 except:
-	from profile import Profile
+    from profile import Profile
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
-							octoprint.plugin.StartupPlugin,
-							octoprint.plugin.SettingsPlugin,
-							octoprint.plugin.AssetPlugin,
-							octoprint.plugin.BlueprintPlugin,
-							octoprint.plugin.TemplatePlugin,
-							octoprint.plugin.EventHandlerPlugin):
+                            octoprint.plugin.StartupPlugin,
+                            octoprint.plugin.SettingsPlugin,
+                            octoprint.plugin.AssetPlugin,
+                            octoprint.plugin.BlueprintPlugin,
+                            octoprint.plugin.TemplatePlugin,
+                            octoprint.plugin.EventHandlerPlugin):
 
-	# ~~ StartupPlugin API
-	def on_after_startup(self):
-		self._logger.debug("Starting PrePrintService plugin, using settings: {}".format(self._settings.get_all_data()))
+    # ~~ StartupPlugin API
+    def on_after_startup(self):
+        self._logger.debug("Starting PrePrintService plugin, using settings: {}".format(self._settings.get_all_data()))
+        self.machinecode_name = None
 
-	def get_settings_defaults(self):
-		return dict(url="http://192.168.48.81:2304/tweak",
-					octoprinturl="http://192.168.48.43:5000/",
-					get_tweaked_stl=True,
-					tweak_action="tweak slice",
-					isurlok=False,
-					default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles",
-												 "default_slic3r_profile.ini"),
-					isapikeyok=False,
-					apikey="initial value")
+    def get_settings_defaults(self):
+        return dict(url="http://192.168.48.81:2304/tweak",
+                    get_tweaked_stl=True,
+                    tweak_action="tweak slice",
+                    isurlok=False,
+                    default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles",
+                                                 "default_slic3r_profile.ini"))
+    def get_template_vars(self):
+        return dict(url=self._settings.get(["url"]),
+                    octoprinturl=self._settings.get(["octoprinturl"]),
+                    get_tweaked_stl=self._settings.get_boolean(["get_tweaked_stl"]),
+                    tweak_action=self._settings.get(["tweak_action"]))
 
-	def get_settings_restricted_paths(self):
-		# self._logger.info("\nAPIKEY: {}\n".format(self._settings.get(["apikey"])))
-		return dict(admin=[["apikey"]])
+    def get_template_configs(self):
+        return [
+            dict(type="settings", custom_bindings=True)
+        ]
 
-	def get_template_vars(self):
-		return dict(url=self._settings.get(["url"]),
-					octoprinturl=self._settings.get(["octoprinturl"]),
-					get_tweaked_stl=self._settings.get_boolean(["get_tweaked_stl"]),
-					tweak_action=self._settings.get(["tweak_action"]))
+    # ~~ SettingsPlugin mixin
+    def on_settings_save(self, data):
+        self._logger.debug("on_settings_save was called")
+        old_url = self._settings.get(["url"])
+        old_octoprinturl = self._settings.get(["octoprinturl"]).strip()
 
-	def get_template_configs(self):
-		return [
-			# dict(type="navbar", custom_bindings=False),
-			dict(type="settings", custom_bindings=True)
-			# dict(type="sidebar", template="dialogs/preprintservice_sidebar.jinja2", custom_bindings=True)
-		]
+        old_tweakaction = self._settings.get(["tweak_action"])
+        old_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
 
-	# ~~ SettingsPlugin mixin
-	def on_settings_save(self, data):
-		self._logger.debug("on_settings_save was called")
-		old_url = self._settings.get(["url"])
-		old_octoprinturl = self._settings.get(["octoprinturl"]).strip()
-		old_apikey = self._settings.get(["apikey"])
+        self._logger.debug("Settings: {}".format(data))
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
-		old_tweakaction = self._settings.get(["tweak_action"])
-		old_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
+        new_url = self._settings.get(["url"]).strip()
+        if old_url != new_url:
+            self._logger.info("New PrePrint Service url was set: {}".format(new_url))
 
-		self._logger.debug("Settings: {}".format(data))
-		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+        new_octoprinturl = self._settings.get(["octoprinturl"])
+        if old_octoprinturl != new_octoprinturl:
+            self._logger.info("New Octoprint server url was set: {}".format(new_octoprinturl))
 
-		new_url = self._settings.get(["url"]).strip()
-		if old_url != new_url:
-			self._logger.info("New PrePrint Service url was set: {}".format(new_url))
+        new_tweakaction = self._settings.get(["tweak_action"])
+        if old_tweakaction != new_tweakaction:
+            self._logger.info("New action for preprocessing set: {}".format(new_tweakaction))
+        new_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
+        if old_gettweakedstl != new_gettweakedstl:
+            self._logger.info("New setting, getting auto-rotated stl is set to: {}".format(new_gettweakedstl))
 
-		new_octoprinturl = self._settings.get(["octoprinturl"])
-		if old_octoprinturl != new_octoprinturl:
-			self._logger.info("New Octoprint server url was set: {}".format(new_octoprinturl))
+    # ~~ AssetPlugin mixin
 
-		new_apikey = self._settings.get(["apikey"]).strip()
-		if old_apikey != new_apikey:
-			self._logger.info("New apikey was set.")
-			# self._logger.info("\nNew apikey: {}\n\n".format(new_apikey))
+    def get_assets(self):
+        # Define your plugin's asset files to automatically include in the
+        # core UI here.
+        return dict(
+            js=["js/preprintservice.js"],
+            css=["css/preprintservice.css"],
+            less=["less/preprintservice.less"]
+        )
 
-		new_tweakaction = self._settings.get(["tweak_action"])
-		if old_tweakaction != new_tweakaction:
-			self._logger.info("New action for preprocessing set: {}".format(new_tweakaction))
-		new_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
-		if old_gettweakedstl != new_gettweakedstl:
-			self._logger.info("New setting, getting auto-rotated stl is set to: {}".format(new_gettweakedstl))
+    # ~~ Softwareupdate hook
 
-	# ~~ AssetPlugin mixin
+    def get_update_information(self):
+        # Define the configuration for your plugin to use with the Software Update
+        # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
+        # for details.
+        return dict(
+            preprintservice=dict(
+                displayName="Preprintservice Plugin",
+                displayVersion=self._plugin_version,
 
-	def get_assets(self):
-		# Define your plugin's asset files to automatically include in the
-		# core UI here.
-		return dict(
-			js=["js/preprintservice.js"],
-			css=["css/preprintservice.css"],
-			less=["less/preprintservice.less"]
-		)
+                # version check: github repository
+                type="github_release",
+                user="christophschranz",
+                repo="OctoPrint-PrePrintService",
+                current=self._plugin_version,
 
-	# ~~ Softwareupdate hook
+                # update method: pip
+                pip="https://github.com/christophschranz/OctoPrint-PrePrintService/archive/{target_version}.zip"
+            )
+        )
 
-	def get_update_information(self):
-		# Define the configuration for your plugin to use with the Software Update
-		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
-		# for details.
-		return dict(
-			preprintservice=dict(
-				displayName="Preprintservice Plugin",
-				displayVersion=self._plugin_version,
+    # ~~ BlueprintPlugin API
 
-				# version check: github repository
-				type="github_release",
-				user="christophschranz",
-				repo="OctoPrint-PrePrintService",
-				current=self._plugin_version,
+    @octoprint.plugin.BlueprintPlugin.route("/import", methods=["POST"])
+    def importSlic3rProfile(self):
+        import datetime
+        import tempfile
+        self._logger.info("importSlic3rProfile")
 
-				# update method: pip
-				pip="https://github.com/christophschranz/OctoPrint-PrePrintService/archive/{target_version}.zip"
-			)
-		)
+        input_name = "file"
+        input_upload_name = input_name + "." + self._settings.global_get(["server", "uploads", "nameSuffix"])
+        input_upload_path = input_name + "." + self._settings.global_get(["server", "uploads", "pathSuffix"])
 
-	# ~~ BlueprintPlugin API
+        print("Checking for", input_upload_name, "and", input_upload_path)
+        if input_upload_name in flask.request.values and input_upload_path in flask.request.values:
+            filename = flask.request.values[input_upload_name]
+            try:
+                profile_dict, imported_name, imported_description = Profile.from_slic3r_ini(
+                    flask.request.values[input_upload_path])
+            except Exception as e:
+                return flask.make_response(
+                    "Something went wrong while converting imported profile: {}".format(e.message), 500)
 
-	@octoprint.plugin.BlueprintPlugin.route("/import", methods=["POST"])
-	def importSlic3rProfile(self):
-		import datetime
-		import tempfile
-		self._logger.info("importSlic3rProfile")
+        elif input_name in flask.request.files:
+            try:
+                with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
+                    temp_file.close()
+                    upload = flask.request.files[input_name]
+                    upload.save(temp_file.name)
+                    profile_dict, imported_name, imported_description = Profile.from_slic3r_ini(temp_file.name)
+                    filename = upload.filename
+            except Exception as e:
+                return flask.make_response(
+                    "Something went wrong while converting imported profile: {}".format(e.message), 500)
 
-		input_name = "file"
-		input_upload_name = input_name + "." + self._settings.global_get(["server", "uploads", "nameSuffix"])
-		input_upload_path = input_name + "." + self._settings.global_get(["server", "uploads", "pathSuffix"])
 
-		if input_upload_name in flask.request.values and input_upload_path in flask.request.values:
-			filename = flask.request.values[input_upload_name]
-			try:
-				profile_dict, imported_name, imported_description = Profile.from_slic3r_ini(
-					flask.request.values[input_upload_path])
-			except Exception as e:
-				return flask.make_response(
-					"Something went wrong while converting imported profile: {}".format(e.message), 500)
+        else:
+            return flask.make_response("No file included", 400)
 
-		elif input_name in flask.request.files:
-			temp_file = tempfile.NamedTemporaryFile("wb", delete=False)
-			try:
-				temp_file.close()
-				upload = flask.request.files[input_name]
-				upload.save(temp_file.name)
-				profile_dict, imported_name, imported_description = Profile.from_slic3r_ini(temp_file.name)
-			# profile_dict, imported_name, imported_description = None, None, None
-			except Exception as e:
-				return flask.make_response(
-					"Something went wrong while converting imported profile: {}".format(e.message), 500)
-			finally:
-				os.remove(temp_file)
+        name, _ = os.path.splitext(filename)
 
-			filename = upload.filename
+        # default values for name, display name and description
+        profile_name = _sanitize_name(name)
+        profile_display_name = imported_name if imported_name is not None else name
+        profile_description = imported_description if imported_description is not None \
+            else "Imported from {filename} on {date}".format(
+            filename=filename, date=octoprint.util.get_formatted_datetime(datetime.datetime.now()))
+        profile_allow_overwrite = False
 
-		else:
-			return flask.make_response("No file included", 400)
+        # overrides
+        if "name" in flask.request.values:
+            profile_name = flask.request.values["name"]
+        if "displayName" in flask.request.values:
+            profile_display_name = flask.request.values["displayName"]
+        if "description" in flask.request.values:
+            profile_description = flask.request.values["description"]
+        if "allowOverwrite" in flask.request.values:
+            from octoprint.server.api import valid_boolean_trues
+            profile_allow_overwrite = flask.request.values["allowOverwrite"] in valid_boolean_trues
 
-		name, _ = os.path.splitext(filename)
+        self._slicing_manager.save_profile("preprintservice", profile_name, profile_dict,
+                                           allow_overwrite=profile_allow_overwrite,
+                                           display_name=profile_display_name,
+                                           description=profile_description)
 
-		# default values for name, display name and description
-		profile_name = _sanitize_name(name)
-		profile_display_name = imported_name if imported_name is not None else name
-		profile_description = imported_description if imported_description is not None \
-			else "Imported from {filename} on {date}".format(
-			filename=filename, date=octoprint.util.get_formatted_datetime(datetime.datetime.now()))
-		profile_allow_overwrite = False
+        result = dict(
+            resource=flask.url_for("api.slicingGetSlicerProfile", slicer="preprintservice", name=profile_name,
+                                   external=False),
+            displayName=profile_display_name,
+            description=profile_description
+        )
+        r = flask.make_response(flask.jsonify(result), 201)
+        r.headers["Location"] = result["resource"]
+        return r
 
-		# overrides
-		if "name" in flask.request.values:
-			profile_name = flask.request.values["name"]
-		if "displayName" in flask.request.values:
-			profile_display_name = flask.request.values["displayName"]
-		if "description" in flask.request.values:
-			profile_description = flask.request.values["description"]
-		if "allowOverwrite" in flask.request.values:
-			from octoprint.server.api import valid_boolean_trues
-			profile_allow_overwrite = flask.request.values["allowOverwrite"] in valid_boolean_trues
+    # EventHandlerPlugin
+    def on_event(self, event, payload):
+        # Extract Gcode name and set it as instance var
+        if event == "SlicingStarted":
+            self.machinecode_name = payload.get("gcode", None)
+            # self._logger.info("\nEVENT: {}: {}\n".format(event, payload))
 
-		self._slicing_manager.save_profile("preprintservice", profile_name, profile_dict,
-										   allow_overwrite=profile_allow_overwrite,
-										   display_name=profile_display_name,
-										   description=profile_description)
+    # SlicerPlugin API
+    def is_slicer_configured(self):
+        # Try connection to PrePrintService
+        url = self._settings.get(["url"]).strip()
+        if "localhost" in url:
+            self._logger.warning("It's risky to set localhost in url: {}".format(url))
+        try:
+            r = requests.get(url, timeout=2, verify=False)
+            if r.status_code != 200:
+                self._logger.warning(
+                    "Connection to PrePrint Server on {} couldn't be established, status code {}".format(url,
+                                                                                                         r.status_code))
+                return False
+        except requests.ConnectionError:
+            self._logger.warning("Connection to PrePrint Server on {} couldn't be established".format(url))
+            return False
+        self._logger.info("Connection to PrePrintService on {} is ready, status code {}"
+                          .format(url, r.status_code))
+        return True
 
-		result = dict(
-			resource=flask.url_for("api.slicingGetSlicerProfile", slicer="preprintservice", name=profile_name,
-								   external=False),
-			displayName=profile_display_name,
-			description=profile_description
-		)
-		r = flask.make_response(flask.jsonify(result), 201)
-		r.headers["Location"] = result["resource"]
-		return r
+    def get_slicer_properties(self):
+        return dict(
+            type="preprintservice",
+            name="PrePrintService",
+            same_device=False,
+            progress_report=False)
 
-	# EventHandlerPlugin
-	def on_event(self, event, payload):
-		# Extract Gcode name and set it as instance var
-		if event == "SlicingStarted":
-			self.machinecode_name = payload.get("gcode", None)
-			# self._logger.info("\nEVENT: {}: {}\n".format(event, payload))
+    def get_slicer_default_profile(self):
+        self._logger.debug("get_slicer_default_profile")
+        path = self._settings.get(["default_profile"])
+        if not path:
+            path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default_slic3r_profile.ini")
+        return self.get_slicer_profile(path)
 
-	# SlicerPlugin API
-	def is_slicer_configured(self):
-		# Try connection to PrePrintService
-		url = self._settings.get(["url"]).strip()
-		if "localhost" in url:
-			self._logger.warning("It's risky to set localhost in url: {}".format(url))
-		try:
-			r = requests.get(url, timeout=2, verify=False)
-			if r.status_code != 200:
-				self._logger.warning(
-					"Connection to PrePrint Server on {} couldn't be established, status code {}".format(url,
-																										 r.status_code))
-				return False
-		except requests.ConnectionError:
-			self._logger.warning("Connection to PrePrint Server on {} couldn't be established".format(url))
-			return False
-		self._logger.info("Connection to PrePrintService on {} is ready, status code {}"
-						  .format(url, r.status_code))
+    def get_slicer_profile(self, path):
+        profile_dict, display_name, description = self._load_profile(path)
+        properties = self.get_slicer_properties()
+        # self._logger.info("get_slicer_profile: {}".format(profile_dict))
+        return SlicingProfile(properties["type"], "unknown", profile_dict, display_name=display_name,
+                                                description=description)
 
-		def test_octoprint_connection():
-			apikey = self._settings.get(["apikey"])
-			if apikey is None:
-				self._logger.warning("API KEY not configured")
-				return False
-			octoprint_url = os.path.join(self._settings.get(["octoprinturl"]).strip(),
-										 "api/version?apikey={}".format(apikey.strip()))
-			if "localhost" in octoprint_url:
-				self._logger.warning("It's risky to set localhost in octoprint_url: {}".format(
-					self._settings.get(["octoprinturl"])))
-			try:
-				r = requests.get(octoprint_url, verify=False)
-				if r.status_code != 200:
-					self._logger.warning(
-						"Connection to Octoprint server on {} couldn't be established, status code {}"
-							.format(self._settings.get(["octoprinturl"]), r.status_code))
-					return False
-			except requests.ConnectionError:
-				self._logger.warning("Connection to Octoprint server on {} couldn't be established".format(
-					self._settings.get(["octoprinturl"])))
-				return False
-			self._logger.info("Connection to Octoprint server on {} is ready, status code {}"
-							  .format(self._settings.get(["octoprinturl"]), r.status_code))
-			return True
+    def save_slicer_profile(self, path, profile, allow_overwrite=True, overrides=None):
+        from octoprint.util import dict_merge
+        if overrides is not None:
+            new_profile = dict_merge(profile.data, overrides)
+        else:
+            new_profile = profile.data
 
-		import threading
-		test_octoprint_connection = threading.Thread(target=test_octoprint_connection, args=())
-		test_octoprint_connection.daemon = True
-		test_octoprint_connection.start()
-		return True
+        self._save_profile(path, new_profile, allow_overwrite=allow_overwrite, display_name=profile.display_name,
+                           description=profile.description)
 
-	def get_slicer_properties(self):
-		return dict(
-			type="preprintservice",
-			name="PrePrintService",
-			same_device=False,
-			progress_report=False)
+    def do_slice(self, model_path, printer_profile, machinecode_path=None, profile_path=None, position=None,
+                 on_progress=None, on_progress_args=None, on_progress_kwargs=None, *args, **kwargs):
 
-	def get_slicer_default_profile(self):
-		self._logger.debug("get_slicer_default_profile")
-		path = self._settings.get(["default_profile"])
-		if not path:
-			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default_slic3r_profile.ini")
-		return self.get_slicer_profile(path)
+        # Get the default profile if none was set
+        if not profile_path:
+            profile_path = self._settings.get(["default_profile"])
+        profile_dict, display_name, description = self._load_profile(profile_path)
 
-	def get_slicer_profile(self, path):
-		profile_dict, display_name, description = self._load_profile(path)
-		properties = self.get_slicer_properties()
-		# self._logger.info("get_slicer_profile: {}".format(profile_dict))
-		return octoprint.slicing.SlicingProfile(properties["type"], "unknown", profile_dict, display_name=display_name,
-												description=description)
+        tweak_actions = list()
+        if "tweak" in self._settings.get(["tweak_action"]):
+            tweak_actions.append("tweak")
+        if "slice" in self._settings.get(["tweak_action"]):
+            tweak_actions.append("slice")
+        if self._settings.get_boolean(["get_tweaked_stl"]):
+            tweak_actions.append("get_tweaked_stl")
+        self._logger.info("Using Tweak actions: {}".format(tweak_actions))
+        # tweak_actions = ["tweak", "slice", "get_tweaked_stl"]
 
-	def save_slicer_profile(self, path, profile, allow_overwrite=True, overrides=None):
-		from octoprint.util import dict_merge
-		if overrides is not None:
-			new_profile = dict_merge(profile.data, overrides)
-		else:
-			new_profile = profile.data
+        # machinecode_path is a string based on a random tmpfile
+        if machinecode_path is None:
+            if self.machinecode_name:
+                machinecode_path = self.machinecode_name
+            else:
+                path, _ = os.path.splitext(model_path)
+                machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
+            self._logger.debug("Machinecode_path: {}".format(machinecode_path))
 
-		self._save_profile(path, new_profile, allow_overwrite=allow_overwrite, display_name=profile.display_name,
-						   description=profile.description)
+        url = self._settings.get(["url"]).strip()
+        self._logger.info("Sending file {} and profile {} to {}".format(model_path, profile_path, url))
+        try:
+            r = requests.post(url,
+                files={
+                    'model': open(model_path, 'rb'),
+                    'profile': open(profile_path, 'rb'), # tmp file
+                }, 
+                data={
+                    "machinecode_name": os.path.split(machinecode_path)[-1],
+                    "tweak_actions": " ".join(tweak_actions),
+                },
+                verify=False)
+            if r.status_code == 200:
+                self._logger.info("Successful response from {}".format(url))
+                out_path = self._file_manager.path_on_disk(FileDestinations.LOCAL, machinecode_path)
+                with open(out_path, 'wb') as f:
+                    f.write(r.content)
+                self._logger.info(f"Wrote {len(r.content)}B to {out_path}")
+            else:
+                raise Exception("Error response from {}; status code {}".format(url, r.status_code))
+        except Exception as e:
+            self._logger.info(e)
+            return False, "Failed to slice via url {}: {}".format(url, e)
 
-	def do_slice(self, model_path, printer_profile, machinecode_path=None, profile_path=None, position=None,
-				 on_progress=None, on_progress_args=None, on_progress_kwargs=None, *args, **kwargs):
-		# Get the default profile if none was set
-		if not profile_path:
-			profile_path = self._settings.get(["default_profile"])
-		profile_dict, display_name, description = self._load_profile(profile_path)
+        analysis = get_analysis_from_gcode(machinecode_path)
+        self._logger.info("Analysis for gcode {}: {}".format(machinecode_path, analysis))
 
-		# print("\n Input values: {} \n{}\n\n".format(args, kwargs))
-		# print("\n\nAll data: {}\n\n".format(self._settings.get_all_data()))
-		tweak_actions = list()
-		if "tweak" in self._settings.get(["tweak_action"]):
-			tweak_actions.append("tweak")
-		if "slice" in self._settings.get(["tweak_action"]):
-			tweak_actions.append("slice")
-		if self._settings.get_boolean(["get_tweaked_stl"]):
-			tweak_actions.append("get_tweaked_stl")
-		self._logger.info("Using Tweak actions: {}".format(tweak_actions))
-		# tweak_actions = ["tweak", "slice", "get_tweaked_stl"]
+        # Setting metadata here prevents errors when calling `has_analysis` and other metadata-fetching functions via filemanager
+        self._file_manager.set_additional_metadata(FileDestinations.LOCAL, machinecode_path, "preprintservice", analysis, overwrite=True)
+        self._logger.info("Set additional metadata")
 
-		# octoprint.plugin.TemplatePlugin.on_plugin_enabled()
-		# machinecode_path is a string based on a random tmpfile
-		if self.machinecode_name:
-			machinecode_path = self.machinecode_name
-		else:
-			path, _ = os.path.splitext(model_path)
-			machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
-		self._logger.debug("Machinecode_name: {}".format(machinecode_path))
+        return True, {'analysis': analysis} if analysis else None
 
-		# Try connection to PrePrintService
-		url = self._settings.get(["url"]).strip()
-		try:
-			r = requests.get(url, verify=False)
-			if r.status_code != 200:
-				self._logger.warning("Connection to {} could not be established, status code {}"
-									 .format(url, r.status_code))
-				return False, "Connection to {} could not be established.".format(url)
-		except requests.ConnectionError:
-			self._logger.info("Connection to {} could not be established.".format(url))
-			return False, "Connection to {} could not be established.".format(url)
+    def _load_profile(self, path):
+        profile, display_name, description = Profile.from_slic3r_ini(path)
+        return profile, display_name, description
 
-		# Sending model, profile and gcodename to PrePrintService
-		files = {'model': open(model_path, 'rb'),
-				 'profile': open(profile_path, 'rb')}  # profile path is wrong (tmp file), but model path is correct
-		data = {"machinecode_name": os.path.split(machinecode_path)[-1],
-				"octoprint_url": os.path.join(self._settings.get(["octoprinturl"]).strip(),
-											  "api/files/local?apikey={}".format(self._settings.get(["apikey"]).strip())),
-				"tweak_actions": " ".join(tweak_actions)}
-		self._logger.info("Sending file {} and profile {} to {} and get {} back to {}.".format(
-			model_path, profile_path, url, data.get("machinecode_name"), data.get("octoprint_url").split("?apikey")[0]))
-
-		# Defining the function that sends the files to the PrePrintService
-		def post_to_preprintserver(url, payload_files, payload):
-			r = requests.post(url, files=payload_files, data=payload, verify=False)
-			self._logger.info("POST to service with status code: {}".format(r.status_code))
-			if r.status_code == 200:
-				self._logger.info("Posted request successfully to {}".format(url))
-			else:
-				self._logger.error("Got http error code {} on request {}".format(r.status_code, url))
-				# self._logger.error(r.text)
-				self._logger.info("Couldn't post to {}".format(url))
-				return False, "Couldn't post to {}, status code {}".format(url, r.status_code)
-
-		import threading
-		slicer_worker_thread = threading.Thread(target=post_to_preprintserver, args=(url, files, data))
-		slicer_worker_thread.daemon = True
-		slicer_worker_thread.start()
-
-		analysis = get_analysis_from_gcode(machinecode_path)
-		self._logger.info("Analysis for gcode {}: {}".format(machinecode_path, analysis))
-		if analysis:
-			analysis = {'analysis': analysis}
-			return True, analysis
-
-	def _load_profile(self, path):
-		profile, display_name, description = Profile.from_slic3r_ini(path)
-		return profile, display_name, description
-
-	def _save_profile(self, path, profile, allow_overwrite=True, display_name=None, description=None):
-		if not allow_overwrite and os.path.exists(path):
-			raise IOError("Cannot overwrite {path}".format(path=path))
-		Profile.to_slic3r_ini(profile, path, display_name=display_name, description=description)
+    def _save_profile(self, path, profile, allow_overwrite=True, display_name=None, description=None):
+        if not allow_overwrite and os.path.exists(path):
+            raise IOError("Cannot overwrite {path}".format(path=path))
+        Profile.to_slic3r_ini(profile, path, display_name=display_name, description=description)
 
 
 def _sanitize_name(name):
-	if name is None:
-		return None
+    if name is None:
+        return None
 
-	if "/" in name or "\\" in name:
-		raise ValueError("name must not contain / or \\")
+    if "/" in name or "\\" in name:
+        raise ValueError("name must not contain / or \\")
 
-	import string
-	valid_chars = "-_.() {ascii}{digits}".format(ascii=string.ascii_letters, digits=string.digits)
-	sanitized_name = ''.join(c for c in name if c in valid_chars)
-	sanitized_name = sanitized_name.replace(" ", "_")
-	return sanitized_name.lower()
+    import string
+    valid_chars = "-_.() {ascii}{digits}".format(ascii=string.ascii_letters, digits=string.digits)
+    sanitized_name = ''.join(c for c in name if c in valid_chars)
+    sanitized_name = sanitized_name.replace(" ", "_")
+    return sanitized_name.lower()
 
 
 def get_host_ip_address():
-	import socket
-	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	s.connect(("8.8.8.8", 80))
-	ip_address = s.getsockname()[0]
-	s.close()
-	# return "192.168.43.187"
-	return ip_address
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    ip_address = s.getsockname()[0]
+    s.close()
+    # return "192.168.43.187"
+    return ip_address
 
 
 def get_analysis_from_gcode(machinecode_path):
-	"""Extracts the analysis data structure from the gocde.
-	The analysis structure should look like this:
-	http://docs.octoprint.org/en/master/modules/filemanager.html#octoprint.filemanager.analysis.GcodeAnalysisQueue
-	(There is a bug in the documentation, estimatedPrintTime should be in seconds.)
-	Return None if there is no analysis information in the file and return -1 for each value if the file is empty
-	"""
-	filament_length = None
-	filament_volume = None
-	printing_seconds = None
-
-	try:
-		_ = len(open(machinecode_path).readlines())
-	except (TypeError, IOError) as e:
-		# empty file was uploaded
-		dd = lambda: defaultdict(dd)
-		analysis = dd()
-		analysis['estimatedPrintTime'] = -1
-		analysis['filament']['tool0']['length'] = -1
-		analysis['filament']['tool0']['volume'] = -1
-		return json.loads(json.dumps(analysis))  # We need to be strict about our return type, unfortunately.
-
-	with open(machinecode_path) as gcode_lines:
-		for gcode_line in gcode_lines:
-			m = re.match('\s*;\s*filament used\s*=\s*([0-9.]+)\s*mm\s*\(([0-9.]+)cm3\)\s*', gcode_line)
-			if m:
-				filament_length = float(m.group(1))
-				filament_volume = float(m.group(2))
-			m = re.match('\s*;\s*estimated printing time\s*=\s(.*)\s*', gcode_line)
-			if m:
-				time_text = m.group(1)
-				# Now extract the days, hours, minutes, and seconds
-				printing_seconds = 0
-				for time_part in time_text.split(' '):
-					for unit in [("h", 60 * 60),
-								 ("m", 60),
-								 ("s", 1),
-								 ("d", 24 * 60 * 60)]:
-						m = re.match('\s*([0-9.]+)' + re.escape(unit[0]), time_part)
-						if m:
-							printing_seconds += float(m.group(1)) * unit[1]
-
-	# Now build up the analysis struct
-	if printing_seconds is not None or filament_length is not None or filament_volume is not None:
-		dd = lambda: defaultdict(dd)
-		analysis = dd()
-		if printing_seconds is not None:
-			analysis['estimatedPrintTime'] = printing_seconds
-		if filament_length is not None:
-			analysis['filament']['tool0']['length'] = filament_length
-		if filament_volume is not None:
-			analysis['filament']['tool0']['volume'] = filament_volume
-		return json.loads(json.dumps(analysis))  # We need to be strict about our return type, unfortunately.
-	return None
+    """Extracts the analysis data structure from the gocde.
+    The analysis structure should look like this:
+    http://docs.octoprint.org/en/master/modules/filemanager.html#octoprint.filemanager.analysis.GcodeAnalysisQueue
+    (There is a bug in the documentation, estimatedPrintTime should be in seconds.)
+    Return None if there is no analysis information in the file and return -1 for each value if the file is empty
+    """
+    dd = lambda: defaultdict(dd)
+    analysis = dd()
+    try:
+        analysis['filament']['tool0']['length'] = -1
+        analysis['filament']['tool0']['volume'] = -1
+        analysis['estimatedPrintTime'] = -1
+        printing_seconds = -1
+        with open(machinecode_path, 'r') as f:
+            for gcode_line in f:
+                m = re.match('\s*;\s*filament used\s*=\s*([0-9.]+)\s*mm\s*\(([0-9.]+)cm3\)\s*', gcode_line)
+                if m:
+                    analysis['filament']['tool0']['length'] = float(m.group(1))
+                    analysis['filament']['tool0']['volume'] = float(m.group(2))
+                m = re.match('\s*;\s*estimated printing time\s*=\s(.*)\s*', gcode_line)
+                if m:
+                    time_text = m.group(1)
+                    # Now extract the days, hours, minutes, and seconds
+                    printing_seconds = 0
+                    for time_part in time_text.split(' '):
+                        for unit in [("h", 60 * 60),
+                                     ("m", 60),
+                                     ("s", 1),
+                                     ("d", 24 * 60 * 60)]:
+                            m = re.match('\s*([0-9.]+)' + re.escape(unit[0]), time_part)
+                            if m:
+                                printing_seconds += float(m.group(1)) * unit[1]
+        analysis['estimatedPrintTime'] = printing_seconds
+    except (TypeError, IOError) as e:
+        # empty file was uploaded
+        print("Could not resolve analysis from file", machinecode_path, " (not found)")
+    return json.loads(json.dumps(analysis))  # We need to be strict about our return type, unfortunately.
 
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
@@ -466,11 +393,11 @@ __plugin_pythoncompat__ = ">=2.7,<4"
 
 
 def __plugin_load__():
-	global __plugin_implementation__
-	__plugin_implementation__ = PreprintservicePlugin()
+    global __plugin_implementation__
+    __plugin_implementation__ = PreprintservicePlugin()
 
-	global __plugin_hooks__
-	__plugin_hooks__ = {
-		# "octoprint.filemanager.preprocessor": __plugin_implementation__.do_slice,
-		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
-	}
+    global __plugin_hooks__
+    __plugin_hooks__ = {
+        # "octoprint.filemanager.preprocessor": __plugin_implementation__.do_slice,
+        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
+    }
