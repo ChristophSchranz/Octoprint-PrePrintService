@@ -23,9 +23,9 @@ class TestService(unittest.TestCase):
         self.addCleanup(td.cleanup)
         self.d = Path(td.name)
         self.slice_args = [
-                str(self.d / 'src.gcode'), 
-                'notused', 
-                str(self.d / 'dest.gcode'), 
+                str(self.d / 'src.gcode'),
+                'notused',
+                str(self.d / 'dest.gcode'),
                 str(self.d / 'profile'),
                 ]
         with open(self.d / 'src.gcode', 'w') as f:
@@ -46,14 +46,14 @@ class TestService(unittest.TestCase):
         self.p._slicing_manager.save_profile.assert_called_with(
                 'preprintservice',
                 'file',
-                dict(foo="bar"), 
-                allow_overwrite=False, 
-                description='description', 
+                dict(foo="bar"),
+                allow_overwrite=False,
+                description='description',
                 display_name='imported.ini'
         )
         mf.make_response.assert_called_with(ANY, 201)
 
-    
+
     @patch('octoprint_preprintservice.flask')
     @patch('octoprint_preprintservice.Profile')
     def testImportSlic3rProfileAsFile(self, prof, mf):
@@ -69,9 +69,9 @@ class TestService(unittest.TestCase):
         self.p._slicing_manager.save_profile.assert_called_with(
                 'preprintservice',
                 'foo',
-                dict(foo="bar"), 
-                allow_overwrite=False, 
-                description='description', 
+                dict(foo="bar"),
+                allow_overwrite=False,
+                description='description',
                 display_name='imported.ini'
         )
         mf.make_response.assert_called_with(ANY, 201)
@@ -93,9 +93,9 @@ class TestService(unittest.TestCase):
         self.p._slicing_manager.save_profile.assert_called_with(
                 'preprintservice',
                 'nameOvr',
-                dict(foo="bar"), 
-                allow_overwrite=True, 
-                description='descriptionOvr', 
+                dict(foo="bar"),
+                allow_overwrite=True,
+                description='descriptionOvr',
                 display_name='displayNameOvr',
         )
 
@@ -130,7 +130,7 @@ class TestService(unittest.TestCase):
     def testSaveSlicerProfile(self):
         with tempfile.NamedTemporaryFile() as f:
             self.p.save_slicer_profile(f.name, SlicingProfile(
-                "foo", 
+                "foo",
                 "display",
                 display_name="foo",
                 description="description",
@@ -152,7 +152,7 @@ class TestService(unittest.TestCase):
         self.assertEqual(ok, True)
         with open(self.d / 'dest.gcode', 'r') as f:
             self.assertEqual(f.read(), "testresponse")
-    
+
     @patch('octoprint_preprintservice.requests')
     def testSliceFailedBadResponse(self, preq):
         preq.post.return_value = MagicMock(status_code=500)
@@ -199,7 +199,5 @@ class TestAnalysis(unittest.TestCase):
                 h.write('; filament used = 5mm (3cm3)\n')
                 h.write('; estimated printing time = 1d3h')
             self.assertEquals(get_analysis_from_gcode(f.name), {
-                'estimatedPrintTime': 86400.0, 
+                'estimatedPrintTime': 86400.0,
                 'filament': {'tool0': {'length': 5, 'volume': 3}}})
-
-        

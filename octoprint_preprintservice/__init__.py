@@ -280,7 +280,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                 files={
                     'model': open(model_path, 'rb'),
                     'profile': open(profile_path, 'rb'), # tmp file
-                }, 
+                },
                 data={
                     "machinecode_name": os.path.split(machinecode_path)[-1],
                     "tweak_actions": " ".join(tweak_actions),
