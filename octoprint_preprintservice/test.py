@@ -147,7 +147,6 @@ class TestService(unittest.TestCase):
     @patch('octoprint_preprintservice.requests')
     def testSliceSuccessful(self, preq):
         preq.post.return_value = MagicMock(status_code=200, content=b"testresponse")
-        self.p._file_manager.path_on_disk.return_value = str(self.d / 'dest.gcode')
         ok, analysis = self.p.do_slice(*self.slice_args)
         self.assertEqual(ok, True)
         with open(self.d / 'dest.gcode', 'r') as f:
@@ -156,14 +155,12 @@ class TestService(unittest.TestCase):
     @patch('octoprint_preprintservice.requests')
     def testSliceFailedBadResponse(self, preq):
         preq.post.return_value = MagicMock(status_code=500)
-        self.p._file_manager.path_on_disk.return_value = str(self.d / 'dest.gcode')
         ok, analysis = self.p.do_slice(*self.slice_args)
         self.assertEqual(ok, False)
 
     @patch('octoprint_preprintservice.requests')
     def testSliceFailedException(self, preq):
         preq.post.return_value.side_effect = Exception("womp womp")
-        self.p._file_manager.path_on_disk.return_value = str(self.d / 'dest.gcode')
         ok, analysis = self.p.do_slice(*self.slice_args)
         self.assertEqual(ok, False)
 
@@ -172,7 +169,6 @@ class TestService(unittest.TestCase):
         self.p._settings.get.side_effect = ["tweak", "tweak", "url"]
         self.p._settings.get_boolean.return_value = False
         preq.post.return_value = MagicMock(status_code=200, content=b"")
-        self.p._file_manager.path_on_disk.return_value = str(self.d / 'dest.gcode')
         self.p.do_slice(*self.slice_args)
         self.assertEqual(preq.post.call_args[1]['data']['tweak_actions'], 'tweak')
 
@@ -181,7 +177,6 @@ class TestService(unittest.TestCase):
         self.p._settings.get.side_effect = ["slice", "slice", "url"]
         self.p._settings.get_boolean.return_value = False
         preq.post.return_value = MagicMock(status_code=200, content=b"")
-        self.p._file_manager.path_on_disk.return_value = str(self.d / 'dest.gcode')
         self.p.do_slice(*self.slice_args)
         self.assertEqual(preq.post.call_args[1]['data']['tweak_actions'], 'slice')
 

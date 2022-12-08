@@ -287,11 +287,10 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                 },
                 verify=False)
             if r.status_code == 200:
-                self._logger.info("Successful response from {}".format(url))
-                out_path = self._file_manager.path_on_disk(FileDestinations.LOCAL, machinecode_path)
-                with open(out_path, 'wb') as f:
+                self._logger.info(f"Successful response from {url}; writing to {machinecode_path}")
+                with open(machinecode_path, 'wb') as f:
                     f.write(r.content)
-                self._logger.info(f"Wrote {len(r.content)}B to {out_path}")
+                self._logger.info(f"Wrote {len(r.content)}B to {machinecode_path}")
             else:
                 raise Exception("Error response from {}; status code {}".format(url, r.status_code))
         except Exception as e:

@@ -11,7 +11,7 @@ repos:
   - repo: local
     hooks:
       - id: unit_tests
-        name: unittests
+        name: Run all Python Tests
         entry: python3 -m unittest discover -p '*test.py'
         pass_filenames: false
         language: system

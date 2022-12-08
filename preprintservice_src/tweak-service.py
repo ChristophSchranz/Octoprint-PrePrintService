@@ -208,20 +208,6 @@ def tweak_slice_file():
                                         response.headers['Content-Disposition'] = "inline; filename=" + machinecode_name
                                 response.headers['Access-Control-Allow-Origin'] = "*"
                                 return response
-				# app.logger.info("Sending file '{}' to URL '{}'".format(gcode_path, octoprint_url.split("?apikey")[0]))
-				# files = {'file': open(gcode_path, 'rb')}
-				# r = requests.post(octoprint_url, files=files, verify=False)
-				# if r.status_code == 201:
-				# 	app.logger.info("Sended back tweaked stl to server {} with code '{}'".
-				# 					format(octoprint_url.split("?apikey")[0],  r.status_code))
-				# 	flash("Sended back tweaked stl to server {} with code '{}'".format(
-				# 		octoprint_url.split("?apikey")[0], r.status_code))
-				# else:
-				# 	app.logger.warning("Problem while loading file to Octoprint server {} with code '{}'".format(
-				# 		octoprint_url.split("?apikey")[0], r.status_code))
-				# 	# app.logger.warning(r.text)
-				# 	flash("Problem while loading file back to server with code '{}'".format(r.status_code))
-				# return redirect(octoprint_url)
 			else:
 				if gcode_path:  # model was sliced, return gcode
 					app.logger.debug("Handling the download of '{}'.".format(gcode_path))
