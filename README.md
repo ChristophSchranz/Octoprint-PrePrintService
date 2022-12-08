@@ -79,18 +79,13 @@ Use `docker-compose down` to stop the service. (If you ever wish :wink: )
 ## Configuration
 
 Configure the plugin in the settings and make sure the url for the PrePrint service is set
-correct:
-
-![settings](/extras/settings3.png)
-
-Note that the **octoprint URL must not be localhost**, as the `tweak-service` is deployed in
-a docker network where it is unable to locate it's hosts local network.
+correctly.
 
 Finally, go back to the home UI, **click** on the **`Slice`-Button** of uploaded STL-Models and
 **produce printable machinecode** via this Preprocessing-Plugin.
 
-
 ## Testing
+
 To test the whole setup, do the following steps:
 
 1. Visit [localhost:2304/tweak](http://localhost:2304/tweak), select a stl model file
@@ -103,23 +98,12 @@ To test the whole setup, do the following steps:
    same folder.
 
 3. Visit the Octoprint server, click on the **`Slice`-Button** of the uploaded
-STL-Model in the `file bar` and **produce printable machinecode** via this
-PrePrint-Service Plugin.. After some seconds a `.gco` file should be uploaded. Note that in a small time frame a
-   `.gco` file with only one line and 83 bytes can appear. This is expected and should be overwritten
-   afterwards after a short time.
+   STL-Model in the `file bar` and **produce printable machinecode** via this
+   PrePrint-Service Plugin.. After some seconds a `.gco` file should be uploaded.
    If this doesn't work, start the octoprint server per CLI with `octoprint serve`
    and track the logs via `tail -f .octoprint/logs/octoprint.log`. The following two lines are expected:
 
         2019-04-07 22:28:44,301 - octoprint.plugins.preprintservice - INFO - Connection to PrePrintService on http://192.168.48.81:2304/tweak is ready, status code 200
-        2019-04-07 22:28:44,321 - octoprint.plugins.preprintservice - INFO - Connection to Octoprint server on http://192.168.48.43:5000/api/version?apikey=A943AB47727A461F9CEF9EXXXXXXXX is ready, status code 200
-
-   If the the Octoprint Server's URL is invalid, you will see this: This means, that the there is no response on the url and you should test your url in bash via `ping` and `curl`.
-
-        2019-04-07 22:27:34,746 - octoprint.plugins.preprintservice - WARNING - "Connection to Octoprint server on http://192.168.48.43:5000 couldn't be established"
-
-   If you see instead the following, please check the APIKEY: (403 - forbidden)
-
-        2019-04-07 22:30:09,570 - octoprint.plugins.preprintservice - WARNING - Connection to Octoprint server on http://192.168.48.43:5000/api/version couldn't be established, status code 403
 
    If the the PrePrint Server can't be reached, you will see this:
 
@@ -130,9 +114,7 @@ PrePrint-Service Plugin.. After some seconds a `.gco` file should be uploaded. N
         2020-02-05 21:20:28,777 - octoprint.plugins.preprintservice - ERROR - Got http error code 500 on request http://192.168.48.48:2304/tweak
         2020-02-05 21:20:28,778 - octoprint.plugins.preprintservice - INFO - Couldn't post to http://192.168.48.48:2304/tweak
 
-If you have any troubles in setting this plugin up or tips to improve this instruction,
- please let me know!
-
+If you have any troubles in setting this plugin up or tips to improve this instruction, please let me know!
 
 ## PrePrint-Service API
 
