@@ -102,11 +102,13 @@ ENV/
 .mypy_cache/
 
 preprintservice_src/Tweaker3
+preprintservice_src/Tweaker-3_old
 preprintservice_src/tweak-service.py.save*
 preprintservice_src/test.py
 preprintservice_src/uploads/*
 !preprintservice_src/uploads/upload_here
 preprintservice_src/profiles/profile_015mm_brim.profile
+upgrade.py
 
 preprintservice_src/profiles/slicing-*
 
