@@ -45,7 +45,6 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                                                  "default_slic3r_profile.ini"))
     def get_template_vars(self):
         return dict(url=self._settings.get(["url"]),
-                    octoprinturl=self._settings.get(["octoprinturl"]),
                     get_tweaked_stl=self._settings.get_boolean(["get_tweaked_stl"]),
                     tweak_action=self._settings.get(["tweak_action"]))
 
@@ -58,7 +57,6 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
     def on_settings_save(self, data):
         self._logger.debug("on_settings_save was called")
         old_url = self._settings.get(["url"])
-        old_octoprinturl = self._settings.get(["octoprinturl"]).strip()
 
         old_tweakaction = self._settings.get(["tweak_action"])
         old_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
@@ -69,10 +67,6 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         new_url = self._settings.get(["url"]).strip()
         if old_url != new_url:
             self._logger.info("New PrePrint Service url was set: {}".format(new_url))
-
-        new_octoprinturl = self._settings.get(["octoprinturl"])
-        if old_octoprinturl != new_octoprinturl:
-            self._logger.info("New Octoprint server url was set: {}".format(new_octoprinturl))
 
         new_tweakaction = self._settings.get(["tweak_action"])
         if old_tweakaction != new_tweakaction:
