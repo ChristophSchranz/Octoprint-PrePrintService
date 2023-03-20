@@ -60,6 +60,8 @@ def tweak_slice_file():
 	# try:
 	if request.method == 'POST':
 		app.logger.debug("request on: %s", request)
+		app.logger.info(f"Request form: {dict(request.form).items()}")
+
 		# 0) Get url on which to upload the requested file
 		octoprint_url = request.form.get("octoprint_url", None)
 		if octoprint_url:
@@ -88,6 +90,7 @@ def tweak_slice_file():
 
 		# 1.2) Get the profile
 		if 'profile' in request.files:
+			# in webUI, there is always this option available, no slicing is called 'no_slicing'
 			profile = request.files["profile"]
 			if profile.filename == '':
 				flash('No selected profile', 'warning')
@@ -100,21 +103,24 @@ def tweak_slice_file():
 				profile.save(os.path.join(app.config['PROFILE_FOLDER'], profilename))
 				profile_path = os.path.join(app.config['PROFILE_FOLDER'], profilename)
 		else:
-			profile = request.form.get("profile")
-			if profile == "no_slicing":
-				profile_path = None
+			if request.form.get("profile"):
+				profile = request.form.get("profile")
+				if profile == "no_slicing":
+					profile_path = None
+				else:
+					profile_path = os.path.join(app.config["PROFILE_FOLDER"], profile)
+					if not os.path.exists(profile_path):
+						profile_path = app.config['DEFAULT_PROFILE']
 			else:
-				profile_path = os.path.join(app.config["PROFILE_FOLDER"], profile)
-				if not os.path.exists(profile_path):
-					profile_path = app.config['DEFAULT_PROFILE']
-		app.logger.info("Using profile: {}".format(profile_path))
+				profile_path = None
+		app.logger.info("Using profile: '{}'".format(profile_path))
 
 		# 1.3) Get the tweak actions
 		# Get the tweak option and use extended_volume as default
-		tweak_option = request.form.get("tweak_option")
+		tweak_option = request.form.get("tweak_option")  # of the form: "tweak_extended_volume_returntweaked")
 		app.logger.info(f"Using Tweaker options: '{tweak_option}'")
 		# TODO update the octoprint commands and allow between ext_vol and ext_sur
-		# tweak_actions = request.form.get("tweak_actions")  # of the form: "tweak slice get_tweaked_stl")
+		# tweak_actions = request.form.get("tweak_actions")  # of the form: "tweak_extended_volume_returntweaked")
 		# command = "Convert"
 		# if not tweak_actions:  # This is the case in the UI mode
 		# 	tweak_actions = list()
@@ -128,25 +134,16 @@ def tweak_slice_file():
 		# if "tweak" in tweak_actions:
 		# 	command = "extended_volume"
 		# app.logger.info("Using Tweaker actions: {}".format(", ".join(tweak_actions)))
-		cmd_map = dict({"Tweak": "",
-						"extended_surface": "-x --minimize surfaces",
-						"extended_volume": "-x",
-						"Convert": "-c",
-						"ascii STL": "-t asciistl",
-						"binary STL": "-t binarystl"})
+		# cmd_map = dict({"Tweak": "",
+		# 				"extended_surface": "-x --minimize surfaces",
+		# 				"extended_volume": "-x",
+		# 				"Convert": "-c",
+		# 				"ascii STL": "-t asciistl",
+		# 				"binary STL": "-t binarystl"})
 		# if 'SLIC3R_PATH' not in app.config and "slice" in tweak_actions:
 		# 	app.logger.error("The provided Slic3r paths are invalid, therefore slicing is not possible! {}".format(
 		# 		app.config['SLIC3R_PATHS']))
 		# 	return redirect(request.url)
-
-		# 1.4) Get the machinecode_name, if slicing was chosen
-		if profile_path:
-			machinecode_name = request.form.get("machinecode_name", 
-				       filename.replace(filename_extension, "_viaPrePrintService.gcode"))
-			if "tweak" in tweak_option:
-				machinecode_name = machinecode_name.replace(".gcode", "_tweaked.gcode")
-			gcode_path = os.path.join(app.config["UPLOAD_FOLDER"], machinecode_name)
-			app.logger.info(f"Machinecode will have the name '{machinecode_name}'")
 
 		# 2.1) retrieve the model file and perform the tweaking
 		if tweak_option.startswith("tweak_") and "_keep" not in tweak_option:
@@ -156,20 +153,20 @@ def tweak_slice_file():
 			# if "_keep" in tweak_option:  # convert to binary
 			# 	tweak_cmd += " -c"
 			if "extended_" in tweak_option:
-				tweak_cmd += " -x"
+				tweak_cmd += " --extended"
 			if "_surface" in tweak_option:
-				tweak_cmd += " -min sur"
+				tweak_cmd += " --minimize surface"
 			tweak_cmd += f" -o {os.path.join(app.config['UPLOAD_FOLDER'], tweaked_filename)}"
 			app.logger.info("Running Tweaker with command: '{}'".format(tweak_cmd))
 
 			# execute as subprocess and handle the response
 			pipe = sp.Popen(tweak_cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
 			response = pipe.communicate()
-			if pipe.returncode == 0:
+			if pipe.returncode == 0 and len(response[0]) == 0:
 				app.logger.info("Tweaking was successful")
 				filename = tweaked_filename
 			else:
-				msg = "Tweaking was executed with the warning:\n"
+				msg = f"Tweaking was executed with the returncode {pipe.returncode} and the warning:\n"
 				msg += f"Response: {response[0]}, error: {response[1]}"
 				app.logger.error(msg)
 				flash(msg, "error")
@@ -177,30 +174,37 @@ def tweak_slice_file():
 		else:
 			app.logger.info("Tweaking was skipped as expected.")
 
-		# # 2.2) Send back tweaked file to requester
-		# if octoprint_url and ("get_tweaked_stl" in tweak_actions or "slice" not in tweak_actions):
-		# 	# Upload the tweaked model via API to octoprint
-		# 	# find the apikey in octoprint server, settings, access control
-		# 	outfile = "{UPLOAD_FOLDER}{sep}{filename}".format(UPLOAD_FOLDER=app.config['UPLOAD_FOLDER'],
-		# 														filename=filename, sep=os.sep)
-		# 	app.logger.info("Sending file '{}' to URL '{}'".format(outfile, octoprint_url.split("?apikey")[0]))
-		# 	files = {'file': open(outfile, 'rb')}
-		# 	r = requests.post(octoprint_url, files=files, verify=False)
-		# 	if r.status_code == 201:
-		# 		app.logger.info("Sended back tweaked stl to server {} with code '{}'".
-		# 						format(octoprint_url.split("?apikey")[0], r.status_code))
-		# 		flash("Sended back tweaked stl to server {} with code '{}'".format(
-		# 			octoprint_url.split("?apikey")[0], r.status_code))
-		# 	else:
-		# 		app.logger.warning("Problem while loading tweaked stl to Octoprint server {} with code '{}'"
-		# 							.format(octoprint_url.split("?apikey")[0], r.status_code))
-		# 		# app.logger.warning(r.text)
-		# 		flash("Problem while loading tweaked stl back to server with code '{}'".format(r.status_code))
-		# else:
-		# 	app.logger.info("Sending back file was skipped as expected.")
+		# 2.2) Send back tweaked file to requester
+		app.logger.info(octoprint_url)
+		app.logger.info(tweak_option)
+		if octoprint_url and (tweak_option.endswith("returntweaked") or profile_path is not None):
+			# Upload the tweaked model via API to octoprint
+			# find the apikey in octoprint server, settings, access control
+			outfile = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+			app.logger.info("Sending file '{}' to URL '{}'".format(outfile, octoprint_url.split("?apikey")[0]))
+			files = {'file': open(outfile, 'rb')}
+			r = requests.post(octoprint_url, files=files, verify=False)
+			if r.status_code == 201:
+				app.logger.info(f"Sended back tweaked stl to server {octoprint_url.split('?apikey')[0]} with code '{r.status_code}'")
+				flash(f"Sended back tweaked stl to server {octoprint_url.split('?apikey')[0]} with code '{r.status_code}'", "success")
+			else:
+				app.logger.warning(f"Problem while loading tweaked stl to Octoprint server '{octoprint_url.split('?apikey')[0]}' with code '{r.status_code}'")
+				# app.logger.warning(r.text)
+				flash(f"Problem while loading tweaked stl back to server with code '{r.status_code}'")
+		else:
+			app.logger.info("Sending back file was skipped as expected.")
 
 		# 3) Slice the tweaked model using Slic3r
-		# Slice the file if it is set, else set gcode_path to None
+		# 3.1) Get the machinecode_name, if slicing was chosen
+		if profile_path:
+			machinecode_name = request.form.get("machinecode_name", 
+				       filename.replace(filename_extension, "_viaPrePrintService.gcode"))
+			if not tweak_option.startswith("tweak_keep"):
+				machinecode_name = machinecode_name.replace(".gcode", "_tweaked.gcode")
+			gcode_path = os.path.join(app.config["UPLOAD_FOLDER"], machinecode_name)
+			app.logger.info(f"Machinecode will have the name '{machinecode_name}'")
+
+		# 3.2) Slice the file if it is set, else set gcode_path to None
 		if profile_path:
 			slice_cmd = f"{app.config['SLIC3R_PATH']} --export-gcode --repair {os.path.join(app.config['UPLOAD_FOLDER'], filename)} "
 			slice_cmd += f" --load {profile_path} --output {gcode_path}"
@@ -241,6 +245,7 @@ def tweak_slice_file():
 			return response
 		
 		else:
+			# case of UI or direct API call
 			if gcode_path:  # model was sliced, return gcode
 				app.logger.debug("Handling the download of '{}'.".format(gcode_path))
 				if request.headers.get('Accept') == "text/plain":
