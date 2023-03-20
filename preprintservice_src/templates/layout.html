@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PrePrintService</title>
+    <!-- Add a favicon -->
+    <link rel="shortcut icon" href="favicon.ico">
+    <!-- Bootstrap link -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" >
+</head>
+<body>
+    {% include 'includes/_navbar.html' %}
+    <div class="container">
+    {% include 'includes/_messages.html' %}
+
+    <!-- Make the layout extendable by other html -->
+    {% block body %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap link -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"></script>
+    <script src="//cdn.ckeditor.com/4.11.1/standard/ckeditor.js"></script>
+    <script type="text/javascript">
+        CKEDITOR.replace('editor')
+    </script>
+</body>
+</html>
