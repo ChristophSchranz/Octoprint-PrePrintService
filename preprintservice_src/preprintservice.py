@@ -8,22 +8,33 @@ import argparse
 import subprocess as sp
 
 from flask import Flask, flash, request, redirect, url_for, Response, render_template, send_from_directory, make_response, jsonify
+from flask_swagger_ui import get_swaggerui_blueprint
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import abort, RequestEntityTooLarge
+
 
 # If the file size is over 100MB, tweaking would lack due to performance issues.
 # MAX_CONTENT_LENGTH = 100 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'stl', '3mf', 'obj'}
 LOCAL_SLIC3R_PATH = "/home/cschranz/software/Slic3r/slic3r-dist/bin/prusa-slicer"
-
+SWAGGER_URL = '/api'
+API_URL = '/static/swagger.yaml'  # the main directory of the app
 
 # set loglevel to info
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
 # create the Flask app
 app = Flask(__name__)
-
 # urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Register the Swagger ui as blueprint
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,  # Swagger UI static files will be mapped
+    API_URL,
+    config={  # Swagger UI config overrides
+        'app_name': "API of the PrePrintService"
+    })
+app.register_blueprint(swaggerui_blueprint)
 
 # set current path or use /src/, as docker use that path but doesn't know __file__
 CURPATH = os.path.dirname(os.path.abspath(__file__)) + os.sep  # TODO clear this
@@ -199,8 +210,8 @@ def tweak_slice_file():
 		if profile_path:
 			machinecode_name = request.form.get("machinecode_name", 
 				       filename.replace(filename_extension, "_viaPrePrintService.gcode"))
-			if not tweak_option.startswith("tweak_keep"):
-				machinecode_name = machinecode_name.replace(".gcode", "_tweaked.gcode")
+			# if not tweak_option.startswith("tweak_keep"):
+			# 	machinecode_name = machinecode_name.replace(".gcode", "_tweaked.gcode")
 			gcode_path = os.path.join(app.config["UPLOAD_FOLDER"], machinecode_name)
 			app.logger.info(f"Machinecode will have the name '{machinecode_name}'")
 
@@ -275,6 +286,10 @@ def favicon():
     return send_from_directory(os.path.join(app.root_path, "templates"),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 			       
+@app.route("/connection")
+def connection():
+	return jsonify({"value": "ok"}), 200
+
 @app.route("/about")
 def about():
 	return render_template("about.html")

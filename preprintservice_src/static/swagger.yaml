@@ -1,0 +1,91 @@
+swagger: "2.0"
+info:
+  description: "API documentation for the PrePrintService."
+  version: "1.0.0"
+  title: "API of the PrePrintService"
+  contact:
+    email: "christoph.schranz@salzburgresearcht.at"
+    url: "https://github.com/christophschranz/OctoPrint-PrePrintService"
+  license:
+    name: "GPLv3"
+    url: "https://www.gnu.org/licenses/gpl-3.0.de.html"
+
+host: "localhost:2304"
+## basePath: "/"  # removed because the basePath is static
+schemes:
+  - "http"
+
+tags:
+- name: "Connection tester"
+  description: "Connection tester"
+- name: "PrePrintService"
+  description: "API for Auto-Orientation and Slicing for FDM 3D printing"
+
+paths:
+  # connection tester
+  /connection:
+    get:
+      tags:
+        - "Connection tester"
+      produces:
+        - "application/json"
+      responses:
+        "200":
+          description: "OK"
+        "404":
+          description: "Resource not found error."
+          schema:
+            $ref: "#/definitions/Status"
+  # Tweak and slice
+  /tweak:
+    post:
+      tags:
+        - "PrePrintService"
+      summary: "Post a model for Auto-Orientation and Slicing for FDM 3D printing."
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "model"
+          in: "body"
+          description: "Geometry model file in the STL, 3mf or obj format."
+          required: true
+          type: "string"
+        - name: "tweak_option"
+          in: "body"
+          description: "Option of Auto-Orientation, one of 'tweak_keep', 'tweak_fast_surface', 'tweak_fast_volume', 'tweak_extended_surface', 'tweak_extended_volume'."
+          required: true
+          type: "string"
+          format: "string"
+        - name: "profile"
+          in: "body"
+          description: "Profile file, default is 'no_slicing' otherwise path of the profile-file."
+          required: true
+          type: "string"
+          format: "string"
+      responses:
+        "200":
+          description: "OK"
+        "404":
+          description: "Resource not found error."
+          schema:
+            $ref: "#/definitions/Status"
+
+definitions:
+  Status:
+    type: "object"
+    properties:
+      status_code:
+        type: "integer"
+        format: "int32"
+      url:
+        type: "string"
+        format: "string"
+      value:
+        type: "string"
+        format: "string"
+
+externalDocs:
+  description: "Find out more about Swagger"
+  url: "http://swagger.io"

@@ -51,7 +51,7 @@ To make the service highly available, it is recommended to deploy the PrePrint-S
 
 Then run the application locally with:
 
-    git clone https://github.com/christophschranz/OctoPrint-PrePrintService
+    git clone https://github.com/christophschranz/OctoPrint-PrePrintService --recurse-submodules
     cd OctoPrint-PrePrintService
     docker-compose up --build -d
     docker-compose logs -f
