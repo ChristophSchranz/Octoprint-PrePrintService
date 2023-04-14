@@ -1,22 +1,20 @@
 # OctoPrint-PrePrintService
 
-OctoPrint-PrePrintService is a service that enhances your 3D printing workflow by automating the orientation and slicing of your 3D models.
-
-The PrePrint Service relies on two powerful tools:
+OctoPrint-PrePrintService is a powerful solution designed to enhance your 3D printing workflow by automating the orientation and slicing of your 3D models. This service leverages two cutting-edge tools:
 
 * **[Tweaker-3](https://github.com/ChristophSchranz/Tweaker-3) for auto-orientation of FDM 3D prints**
 * **[Slic3r](https://slic3r.org/) for slicing**
 
-If you are using the [Cura](https://ultimaker.com/software/ultimaker-cura) slicer instead, you can set up a similar toolchain by using the Plugins [OctoPrint Connection](https://marketplace.ultimaker.com/app/cura/plugins/fieldofview/OctoPrintPlugin) and [Auto-Orientation](https://marketplace.ultimaker.com/app/cura/plugins/nallath/OrientationPlugin).
+For users of the [Cura](https://ultimaker.com/software/ultimaker-cura) slicer, a similar toolchain can be set up using the [OctoPrint Connection](https://marketplace.ultimaker.com/app/cura/plugins/fieldofview/OctoPrintPlugin) and [Auto-Orientation](https://marketplace.ultimaker.com/app/cura/plugins/nallath/OrientationPlugin) plugins.
 
 
 ## Workflow in OctoPrint
 
-You can deploy the entire workflow on a single machine, or across two separate nodes, as illustrated below:
+The workflow can be deployed on a single machine or across two separate nodes as demonstrated below:
 
 ![Workflow](/extras/workflow.png)
 
-The workflow involves the following steps:
+The workflow consists of the following steps:
 
 <!-- Is the first step correct in the new layout, do we need the slicer tab? -->
 1. Upload a model on OctoPrint and click on the `Slice` button in the `file bar`.
@@ -30,11 +28,11 @@ Each step can be customized by adjusting the settings as described in the docume
 
 ## Requirements
 
-1. A node that is connected to your 3D printer referred to as the printer node, like a Raspberry Pi.
-2. One server node for pre-processing with at least a 2 GHz CPU frequency. If the node connected to the printer is powerful enough, this one can do both parts.
+1. A node connected to your 3D printer, referred to as the printer node, such as a Raspberry Pi.
+2. One server node for pre-processing with at least a 2 GHz CPU frequency. If the printer node is powerful enough, it can handle both tasks.
 3. Optional: Install [Docker](https://www.docker.com/) version **1.10.0+**
    and [Docker Compose](https://docs.docker.com/compose/install/) version **1.6.0+**
-   on the more powerful node.
+   on the server node.
 
 
 ## Setup
@@ -47,22 +45,18 @@ or manually using the URL on the Printer-Controller
 
 ### 2. Set up the service in Docker
 
-To make the service highly available, it is recommended to deploy the PrePrint-Service in Docker..
+For high availability, it is recommended to deploy the PrePrint-Service in Docker.
+Make sure to select the appropriate CPU architecture of the server node in the argument `SLIC3R_VERSION` for the installation of Slic3r in `docker-compose.yml`, see [here](https://github.com/prusa3d/PrusaSlicer/releases).
 
-Then run the application locally with:
+To run the application locally, use:
 
     git clone https://github.com/christophschranz/OctoPrint-PrePrintService --recurse-submodules
     cd OctoPrint-PrePrintService
     docker-compose up --build -d
     docker-compose logs -f
 
-**Optional:** The `docker-compose.yml`  is also configured to run in a given Docker swarm. Adapt the `docker-compose.yml` to your setup and run:
 
-    docker-compose build
-    docker-compose push
-    docker stack deploy --compose-file docker-compose.yml preprintservice
-
-In both cases, the service is available at [localhost:2304/tweak](http://localhost:2304/tweak) (at the server node), where a simple UI is provided for testing the PrePrint Service. Use `docker-compose down` to stop the service. (If you ever wish :wink: )
+The service is available at [localhost:2304/tweak](http://localhost:2304/tweak) (on the server node), where a simple UI and API documentation is provided for testing the PrePrint Service. Use `docker-compose down` to stop the service.
 
 ![PrePrint Service](/extras/PrePrintService.png)
 
@@ -70,30 +64,25 @@ In both cases, the service is available at [localhost:2304/tweak](http://localho
 <!-- improve from here on -->
 ## Configuration
 
-Configure the plugin in the settings and make sure the url for the PrePrint service is set
-correctly.
+Configure the plugin in the OctoPrint settings, ensuring that the URL for the PrePrint service is set correctly.
 
-Finally, go back to the home UI, **click** on the **`Slice`-Button** of uploaded STL-Models and
-**produce printable machinecode** via this Preprocessing-Plugin.
+Return to the OctoPrint home UI, click the Slice button on uploaded STL models, and generate printable machine code using this Preprocessing-Plugin.
+
 
 ## Testing
 
-To test the whole setup, do the following steps:
+To test the entire setup, follow these steps:
 
-1. Visit [localhost:2304/tweak](http://localhost:2304/tweak), select a stl model file
-   and make an extended Tweak (auto-rotation) `without` slicing. The output should be
-   an auto-rotated (binary) STL model. If not, check the logs of the docker-service
-   using `docker-compose logs -f` in the folder where the `docker-compose.yml` is located.
 
-2. Now, do the same `with` slicing, the resulting file should be a gcode file of the model.
-   Else, check the logs of the docker-service using `docker-compose logs -f` in the
-   same folder.
+1. Check if the docker service runs appropriately without errors: `docker-compose logs -f`
 
-3. Visit the OctoPrint server, click on the **`Slice`-Button** of the uploaded
-   STL-Model in the `file bar` and **produce printable machinecode** via this
-   PrePrint-Service Plugin.. After some seconds a `.gco` file should be uploaded.
-   If this doesn't work, start the OctoPrint server per CLI with `octoprint serve`
-   and track the logs via `tail -f .octoprint/logs/octoprint.log`. The following two lines are expected:
+1. Visit [localhost:2304/tweak](http://localhost:2304/tweak), select an STL model file, and perform an extended Tweak (auto-rotation) without slicing. The output should be an auto-rotated (binary) STL model. If not, check the Docker service logs using `docker-compose logs -f` in the directory where `docker-compose.yml` is located.
+
+2. Repeat the process with slicing enabled. The resulting file should be a G-code file of the model. If not, check the Docker service logs using `docker-compose logs -f` in the same folder.
+
+3. Visit the OctoPrint server, click the **`Slice`-Button**  for the uploaded STL model in the file bar, and generate printable machine code using this PrePrint-Service Plugin. After a few seconds, a `.gco` file should be uploaded.
+If this doesn't work, start the OctoPrint server using the command `octoprint serve`
+ and monitor the logs with `tail -f .octoprint/logs/octoprint.log`. The following two lines are expected:
 
         2019-04-07 22:28:44,301 - octoprint.plugins.preprintservice - INFO - Connection to PrePrintService on http://192.168.48.81:2304/tweak is ready, status code 200
 
@@ -106,11 +95,13 @@ To test the whole setup, do the following steps:
         2020-02-05 21:20:28,777 - octoprint.plugins.preprintservice - ERROR - Got http error code 500 on request http://192.168.48.48:2304/tweak
         2020-02-05 21:20:28,778 - octoprint.plugins.preprintservice - INFO - Couldn't post to http://192.168.48.48:2304/tweak
 
-If you have any troubles in setting this plugin up or tips to improve this instruction, please let me know!
+If you encounter any issues setting up this plugin or have suggestions for improving these instructions, please let us know!
+
 
 ## PrePrint-Service API
 
-You can use this API to preprocess your models for 3D printing.
+You can use the API to preprocess your models for 3D printing. The documentation is available when the server is running at  [http://localhost:2304/api/](http://localhost:2304/api/). 
+To interact with the API in Python, follow the example below:
 
 ```python
 import requests
@@ -129,18 +120,18 @@ r = requests.post(url, files={'model': open(model_path, 'rb'),
                               'profile': open(profile_path, 'rb')},
                 data={"machinecode_name": output_path,
                         "tweak_actions": "slice"})
+
 # Auto-rotate and slice the model file
 r = requests.post(url, files={'model': open(model_path, 'rb'), 'profile': open(profile_path, 'rb')},
                   data={"machinecode_name": output_path, "tweak_actions": "tweak slice"})
 print(r.status_code)
-object = r.text
+return_object = r.text
 ```
 
-The resulting object, either a tweaked stl file or a gcode file is
-accessible via `r.text` which can be some MB large.
+The resulting object, either a tweaked STL file or a G-code file, is accessible via `r.text`, which may be several MB in size.
 
-Information of how to interact with OctoPrint's API is depicted [here](http://docs.octoprint.org/en/master/api/files.html#upload-file-or-create-folder).
-For example, you can test the file upload API like this:
+Information on interacting with OctoPrint's API is available [here](http://docs.octoprint.org/en/master/api/files.html#upload-file-or-create-folder).
+You can test the file upload API using the following example:
 
 ```python
 import json
@@ -149,12 +140,31 @@ import requests
 # OctoPrint's URL using the default port 5000 and the API including the API-key
 url = "http://192.168.48.43:5000/api/files/local?apikey=A943AB47727A461XXXXXXXXXXXX"
 model_path = 'preprintservice_src/uploads/model.stl'
-files = {'file': open(model_path, 'rb')}
 
 # Upload a file using OctoPrint's API
-r = requests.post(url=url, files=files)
+r = requests.post(url=url, files={'file': open(model_path, 'rb')})
 print(r.status_code)
 print(json.dumps(r.json(), indent=2))
 ```
 
-I hope this workflow for 3D print preprocessing helps you!
+
+## Common issues
+
+- `docker-compose` returns an error about unsupported CPU, e.g.:
+   ```
+   ERROR: for pre-print-service  Cannot create container for service pre-print-service: NanoCPUs can not be set, as your kernel does not support CPU CFS scheduler or the cgroup is not mounted
+   ERROR: Encountered errors while bringing up the project.
+   ```
+   The reason could be that the container trys to install Slic3r for the wrong CPU architecture. 
+   Select an appropriate `SLIC3R_VERSION` in the `args` field in `docker-compose.yml`, i.e., `x64` for most servers and `armv7l` for a Raspberry Pi.
+
+
+## Note of the developer
+
+I hope this PrePrintService improves your 3D printing workflow!
+
+When using in academic works please cite:
+
+```
+Schranz, C. (2016). Tweaker - Auto Rotation Module for FDM 3D Printing. https://doi.org/10.13140/RG.2.2.27593.36966
+```
