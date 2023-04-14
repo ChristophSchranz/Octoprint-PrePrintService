@@ -263,7 +263,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                 machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
             self._logger.info("Machinecode_path: {}".format(machinecode_path))
 
-        url = self._settings.get(["url"]).strip()
+        url = os.path.join(self._settings.get(["url"]).strip(), "?app=octoprint")
         self._logger.info("Sending file {} and profile {} to {}".format(model_path, profile_path, url))
         try:
             r = requests.post(url,
