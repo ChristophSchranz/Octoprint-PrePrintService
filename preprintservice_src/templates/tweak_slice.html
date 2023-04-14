@@ -1,30 +1,43 @@
-    <!doctype html>
-    <title>Web Tweaker</title>
-    <h1>Upload a 3mf or stl file.</h1>
-    <form action="" method="POST" enctype="multipart/form-data">
-      <p><input type="file" name="model"></p>
-        Choose what to do with the file:
+{% extends 'layout.html' %}
+
+{% block body %}
+
+<h1>PrePrintService with <a href="https://github.com/ChristophSchranz/Tweaker-3">Tweaker-3</a> and <a href="https://slic3r.org/">Slic3r</a></h1>
+<!-- 
+{% for mesg in get_flashed_messages() %}
+<h1>{{ mesg }}</h1>
+{% endfor %} -->
+
+    <h2>Upload a STL or 3mf file.</h2>
+        <form action="" method="POST" enctype="multipart/form-data">
+        <p><input type="file" name="model"></p>
+
+    <h2>Auto-Orientation preference:</h2>
+
+        <input type="radio" value="tweak_keep" name="tweak_option"> Keep Current Orientation
         <br>
-    <input type="radio" value="Convert" name="tweak_option"> Nothing
+        <input type="radio" value="tweak_fast_surface" name="tweak_option"> Fast Auto-Orientation - minimize support surface
         <br>
-    <input type="radio" value="Tweak" name="tweak_option"> Simple Tweak
+        <input type="radio" value="tweak_fast_volume" name="tweak_option"> Fast Auto-Orientation - minimize support volume
         <br>
-    <input type="radio" value="extendedTweak" name="tweak_option" checked="checked"> extended Tweak, minimize support surface
+        <input type="radio" value="tweak_extended_surface" name="tweak_option"> Extended Auto-Orientation - minimize support surface
         <br>
-    <input type="radio" value="extendedTweakVol" name="tweak_option"> extended Tweak, minimize support volume (recommended)
+        <input type="radio" value="tweak_extended_volume" name="tweak_option" checked="checked"> Extended Auto-Orientation - minimize support volume (recommended)
         <br>
-        <br>
-        Choose the profile
-        <br>
+
+    <h2>Slicing preference:</h2>
+
         <td><input type="radio" value=no_slicing name="profile" checked="checked"> No Slicing</td>
         <br>
-        {% for profile in profiles %}
-        <tr>
-            <td><input type="radio" value={{profile}} name="profile"> {{profile}}</td>
-            <br>
-        </tr>
-        {% endfor %}
+            {% for profile in profiles %}
+            <tr>
+                <td><input type="radio" value={{profile}} name="profile"> {{profile}}</td>
+                <br>
+            </tr>
+            {% endfor %}
     <br>
 
-      <input type="submit" value="Submit">
+    <input type="submit" value="Process and Download">
     </form>
+
+{% endblock %}

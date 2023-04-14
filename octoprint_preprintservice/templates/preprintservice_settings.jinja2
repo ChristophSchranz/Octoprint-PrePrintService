@@ -7,16 +7,17 @@
                 <input type="text" class="input-block-level" data-bind="value: settings.plugins.preprintservice.url">
             </div>
 
-            <label class="radio">{{ _('PreProcess Actions') }}</label>
+            <label class="radio">{{ _('Auto-Orientation preference') }}</label>
                 <div class="controls">
-                    <input type="radio" name="tweak_action" value="tweak" data-bind="checked: settings.plugins.preprintservice.tweak_action"> {{ _('Auto-rotate only') }}
-                    <input type="radio" name="tweak_action" value="tweak slice" data-bind="checked: settings.plugins.preprintservice.tweak_action"> {{ _('Auto-rotate & Slice') }}
-                    <input type="radio" name="tweak_action" value="slice" data-bind="checked: settings.plugins.preprintservice.tweak_action"> {{ _('Slice only') }}
+                    <input type="radio" name="tweak_option" value="tweak_keep" data-bind="checked: settings.plugins.preprintservice.tweak_option"> {{ _('Keep Current Orientation') }}
+                    <input type="radio" name="tweak_option" value="tweak_extended_surface" data-bind="checked: settings.plugins.preprintservice.tweak_option"> {{ _('Extended Auto-Orientation - minimize support surface') }}
+                    <input type="radio" name="tweak_option" value="tweak_extended_volume" data-bind="checked: settings.plugins.preprintservice.tweak_option"> {{ _('Extended Auto-Orientation - minimize support volume (recommended)') }}
+
                 </div>
             <div class="control-group">
                 <div class="controls">
                     <label class="checkbox">
-                        <input type="checkbox" data-bind="checked: settings.plugins.preprintservice.get_tweaked_stl"> {{ _('Receive auto-rotated model file (only for the middle option)') }}
+                        <input type="checkbox" data-bind="checked: settings.plugins.preprintservice.return_tweaked"> {{ _('Return and save auto-rotated model ') }}
                     </label>
                 </div>
             </div>

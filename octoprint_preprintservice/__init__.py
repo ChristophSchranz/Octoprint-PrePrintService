@@ -39,14 +39,14 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
     def get_settings_defaults(self):
         return dict(url="http://192.168.48.81:2304/tweak",
                     get_tweaked_stl=True,
-                    tweak_action="tweak slice",
+                    tweak_option="tweak_extended_volume",
                     isurlok=False,
                     default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles",
                                                  "default_slic3r_profile.ini"))
     def get_template_vars(self):
         return dict(url=self._settings.get(["url"]),
                     get_tweaked_stl=self._settings.get_boolean(["get_tweaked_stl"]),
-                    tweak_action=self._settings.get(["tweak_action"]))
+                    tweak_option=self._settings.get(["tweak_option"]))
 
     def get_template_configs(self):
         return [
@@ -58,7 +58,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         self._logger.debug("on_settings_save was called")
         old_url = self._settings.get(["url"])
 
-        old_tweakaction = self._settings.get(["tweak_action"])
+        old_tweak_option = self._settings.get(["tweak_option"])
         old_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
 
         self._logger.debug("Settings: {}".format(data))
@@ -68,9 +68,9 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         if old_url != new_url:
             self._logger.info("New PrePrint Service url was set: {}".format(new_url))
 
-        new_tweakaction = self._settings.get(["tweak_action"])
-        if old_tweakaction != new_tweakaction:
-            self._logger.info("New action for preprocessing set: {}".format(new_tweakaction))
+        new_tweak_option = self._settings.get(["tweak_option"])
+        if old_tweak_option != new_tweak_option:
+            self._logger.info("New tweak option for preprocessing set: {}".format(new_tweak_option))
         new_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
         if old_gettweakedstl != new_gettweakedstl:
             self._logger.info("New setting, getting auto-rotated stl is set to: {}".format(new_gettweakedstl))
@@ -94,7 +94,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         # for details.
         return dict(
             preprintservice=dict(
-                displayName="Preprintservice Plugin",
+                displayName="PrePrintService Plugin",
                 displayVersion=self._plugin_version,
 
                 # version check: github repository
@@ -194,16 +194,16 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         # Try connection to PrePrintService
         url = self._settings.get(["url"]).strip()
         if "localhost" in url:
-            self._logger.warning("It's risky to set localhost in url: {}".format(url))
+            self._logger.warning("It's risky to set localhost in url, it might not work: {}".format(url))
         try:
             r = requests.get(url, timeout=2, verify=False)
             if r.status_code != 200:
                 self._logger.warning(
-                    "Connection to PrePrint Server on {} couldn't be established, status code {}".format(url,
+                    "Connection to PrePrintService on {} couldn't be established, status code {}".format(url,
                                                                                                          r.status_code))
                 return False
         except requests.ConnectionError:
-            self._logger.warning("Connection to PrePrint Server on {} couldn't be established".format(url))
+            self._logger.warning("Connection to PrePrintService on {} couldn't be established".format(url))
             return False
         self._logger.info("Connection to PrePrintService on {} is ready, status code {}"
                           .format(url, r.status_code))
@@ -248,16 +248,12 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
             profile_path = self._settings.get(["default_profile"])
         profile_dict, display_name, description = self._load_profile(profile_path)
 
-        tweak_actions = list()
-        if "tweak" in self._settings.get(["tweak_action"]):
-            tweak_actions.append("tweak")
-        if "slice" in self._settings.get(["tweak_action"]):
-            tweak_actions.append("slice")
-        if self._settings.get_boolean(["get_tweaked_stl"]):
-            tweak_actions.append("get_tweaked_stl")
-        self._logger.info("Using Tweak actions: {}".format(tweak_actions))
-        # tweak_actions = ["tweak", "slice", "get_tweaked_stl"]
-
+        self._logger.info("Return tweaked model: {}".format(self._settings.get(["return_tweaked"])))  # boolean
+        tweak_option = self._settings.get(["tweak_option"])  # "tweak_option": "tweak_extended_volume"
+        if self._settings.get(["return_tweaked"]):
+            tweak_option += "_returntweaked"
+        self._logger.info(f"Using Tweak option: '{tweak_option}'")
+        
         # machinecode_path is a string based on a random tmpfile
         if machinecode_path is None:
             if self.machinecode_name:
@@ -265,7 +261,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
             else:
                 path, _ = os.path.splitext(model_path)
                 machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
-            self._logger.debug("Machinecode_path: {}".format(machinecode_path))
+            self._logger.info("Machinecode_path: {}".format(machinecode_path))
 
         url = self._settings.get(["url"]).strip()
         self._logger.info("Sending file {} and profile {} to {}".format(model_path, profile_path, url))
@@ -277,14 +273,14 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                 },
                 data={
                     "machinecode_name": os.path.split(machinecode_path)[-1],
-                    "tweak_actions": " ".join(tweak_actions),
+                    "tweak_option": tweak_option,
                 },
                 verify=False)
             if r.status_code == 200:
                 self._logger.info(f"Successful response from {url}; writing to {machinecode_path}")
                 with open(machinecode_path, 'wb') as f:
                     f.write(r.content)
-                self._logger.info(f"Wrote {len(r.content)}B to {machinecode_path}")
+                self._logger.info(f"Wrote {len(r.content)} bytes to {machinecode_path}")
             else:
                 raise Exception("Error response from {}; status code {}".format(url, r.status_code))
         except Exception as e:

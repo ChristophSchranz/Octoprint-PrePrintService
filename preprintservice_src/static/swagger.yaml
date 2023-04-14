@@ -1,0 +1,92 @@
+swagger: "2.0"
+info:
+  title: "API of the PrePrintService"
+  description: "API documentation for the PrePrintService."
+  version: "1.0.0"
+
+host: "localhost:2304"
+schemes:
+  - http
+
+tags:
+- name: "Connection tester"
+  description: "Test the connection to the PrePrintService."
+- name: "PrePrintService"
+  description: "API for auto-orientation and slicing for FDM 3D printing."
+
+paths:
+  # Connection tester
+  /connection:
+    get:
+      tags:
+        - "Connection tester"
+      summary: "Test the connection to the PrePrintService."
+      produces:
+        - "application/json"
+      responses:
+        "200":
+          description: "OK"
+        "404":
+          description: "Resource not found error."
+          schema:
+            $ref: "#/definitions/Status"
+  # Tweak and slice
+  /tweak:
+    post:
+      tags:
+        - "PrePrintService"
+      summary: "Post a model for Auto-Orientation and Slicing for FDM 3D printing."
+      consumes:
+        - "multipart/form-data"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "model"
+          in: "formData"
+          description: "Geometry model file in the STL, 3mf or obj format."
+          required: true
+          type: "file"
+        - name: "tweak_option"
+          in: "formData"
+          description: "Option of Auto-Orientation, one of 'tweak_keep', 'tweak_fast_surface', 'tweak_fast_volume', 'tweak_extended_surface', 'tweak_extended_volume'."
+          required: true
+          type: "string"
+          format: "string"
+        - name: "machinecode_name"
+          in: "formData"
+          description: "Name of the output GCODE file."
+          required: true
+          type: "string"
+          format: "string"
+        - name: "profile"
+          in: "formData"
+          description: "Profile file, default is 'no_slicing' otherwise path of the profile-file."
+          required: false
+          type: "file"
+      responses:
+        "200":
+          description: "OK"
+          schema:
+            $ref: "#/definitions/Status"
+        "404":
+          description: "Resource not found error."
+          schema:
+            $ref: "#/definitions/Status"
+
+definitions:
+  Status:
+    type: "object"
+    properties:
+      status_code:
+        type: "integer"
+        format: "int32"
+      url:
+        type: "string"
+        format: "string"
+      value:
+        type: "string"
+        format: "string"
+
+externalDocs:
+  description: "Find out more about Swagger"
+  url: "http://swagger.io"

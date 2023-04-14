@@ -3,7 +3,6 @@ LABEL maintainer="Christoph Schranz <christoph.schranz@salzburgresearch.at>"
 
 RUN mkdir /tmp || true
 
-
 # Install Slic3r
 RUN apt-get update && apt-get install -y \
   freeglut3 \
@@ -49,6 +48,7 @@ RUN mkdir -p /home/slic3r/.local/share/
 ADD requirements.txt .
 RUN pip install -r requirements.txt
 
+RUN mkdir /src
 ADD . /src/.
 
 # Clone if Tweaker-3 doesn't exist, and pull.
@@ -62,4 +62,5 @@ RUN ls /src/Tweaker-3/README.md  > /dev/null 2>&1  \
 ENV PYTHONPATH /src/.
 ENV WORKDIR /src/
 
-ENTRYPOINT ["python3", "/src/tweak-service.py"]
+# run the PrePrintService with Tweaker-3 and Slic3r
+ENTRYPOINT ["python3", "/src/preprintservice.py"]
