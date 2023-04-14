@@ -48,6 +48,7 @@ RUN mkdir -p /home/slic3r/.local/share/
 ADD requirements.txt .
 RUN pip install -r requirements.txt
 
+RUN mkdir /src
 ADD . /src/.
 
 # Clone if Tweaker-3 doesn't exist, and pull.

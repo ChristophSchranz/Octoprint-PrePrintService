@@ -178,7 +178,7 @@ def tweak_slice_file():
 				filename = tweaked_filename
 			else:
 				msg = f"Tweaking was executed with the returncode {pipe.returncode} and the warning:\n"
-				msg += f"Response: {response[0]}, error: {response[1]}"
+				msg += f"Response: {response[0]}, error: {response[1].decode('utf-8').strip()}"
 				app.logger.error(msg)
 				flash(msg, "error")
 				return redirect(request.url)
@@ -186,7 +186,6 @@ def tweak_slice_file():
 			app.logger.info("Tweaking was skipped as expected.")
 
 		# 2.2) Send back tweaked file to requester
-		app.logger.info(octoprint_url)
 		app.logger.info(tweak_option)
 		if octoprint_url and (tweak_option.endswith("returntweaked") or profile_path is not None):
 			# Upload the tweaked model via API to octoprint
@@ -228,8 +227,8 @@ def tweak_slice_file():
 				app.logger.info("Slicing was successful")
 			else:
 				msg = f"Slicing was executed with a nonzero returncode: {pipe.returncode}.\n"
-				msg += f"Response: {response[0]}, error message: {response[1]}."
-				if pipe.returncode in [126, 127] or "Exec format error" in response[1]:
+				msg += f"Response: {response[0]}, error message: {response[1].decode('utf-8').strip()}."
+				if pipe.returncode in [126, 127] or "Exec format error" in response[1].decode('utf-8').strip():
 					msg += "\nYour Slicer version can't be found. Make sure the provided path works in command line."
 					msg += "\nSearch an appropriate version for your cpu architecture in https://github.com/prusa3d/PrusaSlicer/releases"
 				app.logger.error(msg)
