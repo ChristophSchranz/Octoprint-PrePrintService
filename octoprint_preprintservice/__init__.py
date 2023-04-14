@@ -37,15 +37,16 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         self.machinecode_name = None
 
     def get_settings_defaults(self):
-        return dict(url="http://192.168.48.81:2304/tweak",
+        return dict(url="http://127.0.0.1:2304/tweak",
                     get_tweaked_stl=True,
                     tweak_option="tweak_extended_volume",
                     isurlok=False,
-                    default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles",
-                                                 "default_slic3r_profile.ini"))
+                    default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "no_slicing"))
+                                                #  "default_slic3r_profile.ini"))
     def get_template_vars(self):
+        # self._logger.info(f'in get_template_vars url={self._settings.get(["url"])}')
         return dict(url=self._settings.get(["url"]),
-                    get_tweaked_stl=self._settings.get_boolean(["get_tweaked_stl"]),
+                    request_source="octoprint",
                     tweak_option=self._settings.get(["tweak_option"]))
 
     def get_template_configs(self):
@@ -263,7 +264,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                 machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
             self._logger.info("Machinecode_path: {}".format(machinecode_path))
 
-        url = os.path.join(self._settings.get(["url"]).strip(), "?request_source=octoprint")
+        url = self._settings.get(["url"]).strip()
         self._logger.info("Sending file {} and profile {} to {}".format(model_path, profile_path, url))
         try:
             r = requests.post(url,
@@ -274,6 +275,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                 data={
                     "machinecode_name": os.path.split(machinecode_path)[-1],
                     "tweak_option": tweak_option,
+                    "request_source": "octoprint",
+                    "octoprinturl": self._settings.get(["url"])
                 },
                 verify=False)
             if r.status_code == 200:
