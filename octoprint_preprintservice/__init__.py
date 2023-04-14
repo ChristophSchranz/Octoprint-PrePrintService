@@ -276,7 +276,9 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                     "machinecode_name": os.path.split(machinecode_path)[-1],
                     "tweak_option": tweak_option,
                     "request_source": "octoprint",
-                    "octoprinturl": self._settings.get(["url"])
+                    "octoprint_url": os.path.join(self._settings.get(["octoprinturl"]).strip(),
+											  "api/files/local?apikey={}".format(self._settings.get(["apikey"]).strip())),
+                    # "octoprinturl": self._settings.get(["url"])  # url of the PrePrintService
                 },
                 verify=False)
             if r.status_code == 200:
