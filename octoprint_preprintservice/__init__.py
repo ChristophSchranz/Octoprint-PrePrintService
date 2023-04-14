@@ -267,8 +267,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         url = self._settings.get(["url"]).strip()
         self._logger.info("Sending file {} and profile {} to {}".format(model_path, profile_path, url))
         try:
-            octoprint_url = self._settings.get(["OctoPrintURL"], "http://127.0.0.1:2304").strip()
-            octoprint_apikey = self._settings.get(["apikey"], "").strip()
+            octoprint_url = str(self._settings.get(["OctoPrintURL"])).strip()
+            octoprint_apikey = str(self._settings.get(["apikey"])).strip()
             r = requests.post(url,
                 files={
                     'model': open(model_path, 'rb'),
