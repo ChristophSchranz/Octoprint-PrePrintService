@@ -38,7 +38,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
 
     def get_settings_defaults(self):
         return dict(url="http://127.0.0.1:2304/tweak",
-                    octoprint_url="http://127.0.0.1:5000",
+                    octoprint_url="http://127.0.0.1:5000",  # mode without port is also possible
                     apikey="find API-key under API",
                     tweak_option="tweak_extended_volume_returntweaked",
                     isurlok=False,
@@ -276,8 +276,6 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         url = self._settings.get(["url"]).strip()
         self._logger.info("Sending file {} and profile {} to {}".format(model_path, profile_path, url))
         try:
-            octoprint_url = self._settings.get(["octoprint_url"]).strip()
-            octoprint_apikey = self._settings.get(["apikey"]).strip()
             r = requests.post(url,
                 files={
                     'model': open(model_path, 'rb'),
