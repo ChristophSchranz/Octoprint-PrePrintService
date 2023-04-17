@@ -37,15 +37,17 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         self.machinecode_name = None
 
     def get_settings_defaults(self):
-        return dict(url="http://192.168.48.81:2304/tweak",
-                    get_tweaked_stl=True,
-                    tweak_option="tweak_extended_volume",
+        return dict(url="http://127.0.0.1:2304/tweak",
+                    octoprint_url="http://127.0.0.1:5000",
+                    apikey="find API-key under API",
+                    tweak_option="tweak_extended_volume_returntweaked",
                     isurlok=False,
-                    default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles",
-                                                 "default_slic3r_profile.ini"))
+                    default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "no_slicing"))
+                                                #  "default_slic3r_profile.ini"))
     def get_template_vars(self):
+        # self._logger.info(f'in get_template_vars url={self._settings.get(["url"])}')
         return dict(url=self._settings.get(["url"]),
-                    get_tweaked_stl=self._settings.get_boolean(["get_tweaked_stl"]),
+                    request_source="octoprint",
                     tweak_option=self._settings.get(["tweak_option"]))
 
     def get_template_configs(self):
@@ -57,6 +59,8 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
     def on_settings_save(self, data):
         self._logger.debug("on_settings_save was called")
         old_url = self._settings.get(["url"])
+        old_octoprint_url = self._settings.get(["octoprint_url"])
+        old_apikey = self._settings.get(["apikey"])
 
         old_tweak_option = self._settings.get(["tweak_option"])
         old_gettweakedstl = self._settings.get_boolean(["get_tweaked_stl"])
@@ -67,6 +71,12 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         new_url = self._settings.get(["url"]).strip()
         if old_url != new_url:
             self._logger.info("New PrePrint Service url was set: {}".format(new_url))
+        new_octoprint_url = self._settings.get(["octoprint_url"]).strip()
+        if old_octoprint_url != new_octoprint_url:
+            self._logger.info("New Octoprint Service url was set: {}".format(new_octoprint_url))
+        new_apikey = self._settings.get(["apikey"]).strip()
+        if old_apikey != new_apikey:
+            self._logger.info("New API key was set: {}".format(new_apikey))
 
         new_tweak_option = self._settings.get(["tweak_option"])
         if old_tweak_option != new_tweak_option:
@@ -263,9 +273,11 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                 machinecode_path = path + "." + display_name.split("\n")[0] + ".gcode"
             self._logger.info("Machinecode_path: {}".format(machinecode_path))
 
-        url = os.path.join(self._settings.get(["url"]).strip(), "?request_source=octoprint")
+        url = self._settings.get(["url"]).strip()
         self._logger.info("Sending file {} and profile {} to {}".format(model_path, profile_path, url))
         try:
+            octoprint_url = self._settings.get(["octoprint_url"]).strip()
+            octoprint_apikey = self._settings.get(["apikey"]).strip()
             r = requests.post(url,
                 files={
                     'model': open(model_path, 'rb'),
@@ -274,6 +286,10 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
                 data={
                     "machinecode_name": os.path.split(machinecode_path)[-1],
                     "tweak_option": tweak_option,
+                    "request_source": "octoprint",
+                    "octoprint_url": self._settings.get(["octoprint_url"]).strip(),
+                    "apikey": self._settings.get(["apikey"]).strip()
+                    # "octoprinturl": self._settings.get(["url"])  # url of the PrePrintService
                 },
                 verify=False)
             if r.status_code == 200:
