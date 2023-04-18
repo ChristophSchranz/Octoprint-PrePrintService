@@ -72,16 +72,13 @@ def tweak_slice_file():
 	# try:
 	if request.method == 'POST':
 		app.logger.debug("request on: %s", request)
-
+		# available keys in request.forms: 'machinecode_name', 'tweak_option', 'request_source' 'octoprint_url', 'apikey'
+		
 		# 0) Get url on which to upload the requested file
-		request_source = request.form.get("request_source", "UI")  # "octoprint"  or "UI"
-		if request_source == "octoprint":
-			app.logger.info(f'Getting request from octoprint server')
-		elif request_source.lower() == "ui":
-			app.logger.info("Getting request from user interface")
+		if request.form.get("octoprint_url") is not None:
+			app.logger.info(f'Getting request from octoprint server: {request.form.get("octoprint_url")}')
 		else:
-			app.logger.warning("Unknown request source")
-		app.logger.info(f"Request from {request.path}")
+			app.logger.info("Getting request from user interface")
 		app.logger.info(f"Request with payload: {dict(request.form).items()}")
 
 		# 1) Check if the input is correct
@@ -139,6 +136,8 @@ def tweak_slice_file():
 		# 2.1) retrieve the model file and perform the tweaking
 		if tweak_option.startswith("tweak_") and "_keep" not in tweak_option:
 			tweaked_filename = filename.replace(filename_extension, f"_tweaked{filename_extension}")
+			if request.form.get("request_source") == "octoprint":  # rename if requested from octoprint
+				tweaked_filename = tweaked_filename.split(".tmp.")[0] + f"_tweaked{filename_extension}"
 			tweak_cmd = f"{sys.executable} {os.path.join(CURPATH, 'Tweaker-3', 'Tweaker.py')}"
 			tweak_cmd += f" -i {os.path.join(app.config['UPLOAD_FOLDER'], filename)}"
 			# if "_keep" in tweak_option:  # convert to binary
@@ -153,9 +152,9 @@ def tweak_slice_file():
 			# execute as subprocess and handle the response
 			pipe = sp.Popen(tweak_cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
 			response = pipe.communicate()
+			filename = tweaked_filename
 			if pipe.returncode == 0 and len(response[0]) == 0:
 				app.logger.info("Tweaking was successful")
-				filename = tweaked_filename
 			else:
 				msg = f"Tweaking was executed with the returncode {pipe.returncode} and the warning:\n"
 				msg += f"Response: {response[0]}, error: {response[1].decode('utf-8').strip()}"
@@ -165,27 +164,25 @@ def tweak_slice_file():
 		else:
 			app.logger.info("Tweaking was skipped as expected.")
 
-		# # 2.2) Send back tweaked file to requester, currently not supported as we can't send back the STL in an extra API call
-		# # app.logger.info("\ndebug")
-		# # app.logger.info(request_source)
-		# # app.logger.info(tweak_option.endswith("_returntweaked"))
-		# if request_source == "octoprint" and (tweak_option.endswith("_returntweaked") or profile_path is not None):
-		# 	app.logger.info("Sending back tweaked model file")
-		# 	# Upload the tweaked model via API to octoprint
-		# 	# find the apikey in octoprint server, settings, access control
-		# 	outfile = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-		# 	app.logger.info("Sending file '{}' to URL '{}'".format(outfile, octoprint_url.split("?apikey")[0]))
-		# 	files = {'file': open(outfile, 'rb')}
-		# 	r = requests.post(octoprint_url, files=files, verify=False)
-		# 	if r.status_code == 201:
-		# 		app.logger.info(f"Sended back tweaked stl to server {octoprint_url.split('?apikey')[0]} with code '{r.status_code}'")
-		# 		flash(f"Sended back tweaked stl to server {octoprint_url.split('?apikey')[0]} with code '{r.status_code}'", "success")
-		# 	else:
-		# 		app.logger.warning(f"Problem while loading tweaked stl to Octoprint server '{octoprint_url.split('?apikey')[0]}' with code '{r.status_code}'")
-		# 		# app.logger.warning(r.text)
-		# 		flash(f"Problem while loading tweaked stl back to server with code '{r.status_code}'")
-		# else:
-		# 	app.logger.info("Sending back file was skipped as expected.")
+		# 2.2) Send back tweaked file to requester, currently not supported as we can't send back the STL in an extra API call
+		if request.form.get("octoprint_url") and (tweak_option.endswith("_returntweaked") or profile_path is not None):
+			app.logger.info("Sending back tweaked model file")
+			# Upload the tweaked model via API to octoprint
+			# find the apikey in octoprint server, settings, access control
+			outfile = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+			app.logger.info("Sending file '{}' to URL '{}'".format(outfile, request.form.get("octoprint_url")))
+			files = {'file': open(outfile, 'rb')}
+			url_with_key = os.path.join(request.form.get("octoprint_url"), f'api/files/local?apikey={request.form.get("apikey")}')
+			r = requests.post(url_with_key, files=files, verify=False)
+			if r.status_code == 201:
+				app.logger.info(f"Sended back tweaked stl to server {request.form.get('octoprint_url')} with code '{r.status_code}'")
+				flash(f"Sended back tweaked stl to server {request.form.get('octoprint_url')} with code '{r.status_code}'", "success")
+			else:
+				app.logger.warning(f"Problem while loading tweaked stl to Octoprint server '{request.form.get('octoprint_url')}' with code '{r.status_code}'")
+				# app.logger.warning(r.text)
+				flash(f"Problem while loading tweaked stl back to server with code '{r.status_code}'")
+		else:
+			app.logger.info("Sending back file was skipped as expected.")
 
 		# 3) Slice the tweaked model using Slic3r
 		# 3.1) Get the machinecode_name, if slicing was chosen
@@ -223,22 +220,7 @@ def tweak_slice_file():
 		else:
 			gcode_path = None
 
-		# 4) Redirect the ready gcode or tweaked model file 
-		# if octoprint_url and gcode_path:  # TODO octoprint_url does not exist anymore in octoprint-server
-		# 	# Upload a model via API to octoprint
-		# 	# find the apikey in octoprint server, settings, access control
-		# 	# outfile = "{gcode_path}".format(gcode_path=gcode_path)
-		# 	app.logger.debug("Handling the download of '{}'.".format(gcode_path))
-		# 	if request.headers.get('Accept') == "text/plain":
-		# 			response = Response(open(gcode_path, 'rb').read())
-		# 	else:
-		# 			response = Response(open(gcode_path, 'rb').read(), mimetype='application/octet-stream')
-		# 			response.headers['Content-Disposition'] = "inline; filename=" + machinecode_name
-		# 	response.headers['Access-Control-Allow-Origin'] = "*"
-		# 	return response
-		
-		# else:
-		# case of UI or direct API call
+		# 4) Redirect the ready gcode or tweaked model file from UI or direct API call
 		if gcode_path:  # model was sliced, return gcode
 			app.logger.debug("Handling the download of '{}'.".format(gcode_path))
 			if request.headers.get('Accept') == "text/plain":
@@ -256,7 +238,6 @@ def tweak_slice_file():
 				response = Response(open(tweaked_file_path, 'rb').read(), mimetype='application/octet-stream')
 				response.headers['Content-Disposition'] = "inline; filename=" + filename
 			response.headers['Access-Control-Allow-Origin'] = "*"
-
 		return response
 	else:
 		return render_template('tweak_slice.html', profiles=os.listdir(app.config['PROFILE_FOLDER']))

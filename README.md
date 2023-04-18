@@ -37,13 +37,7 @@ Each step can be customized by adjusting the settings as described in the docume
 
 ## Setup
 
-### 1. Install the Plugin
-
-Install the **OctoPrint-PrePrint Service** via the [Plugin Manager](http://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html) from the Plugin Repository `https://plugins.octoprint.org/plugins/preprintservice/` 
-or manually using the URL on the Printer-Controller
-
-
-### 2. Set up the service in Docker
+### 1. Set up the PrePrintSerivce in Docker
 
 For high availability, it is recommended to deploy the PrePrint-Service in Docker.
 Make sure to select the appropriate CPU architecture of the server node in the argument `SLIC3R_VERSION` for the installation of Slic3r in `docker-compose.yml`, see [here](https://github.com/prusa3d/PrusaSlicer/releases).
@@ -56,17 +50,34 @@ To run the application locally, use:
     docker-compose logs -f
 
 
-The service is available at [localhost:2304/tweak](http://localhost:2304/tweak) (on the server node), where a simple UI and API documentation is provided for testing the PrePrint Service. Use `docker-compose down` to stop the service.
+The service is available at [localhost:2304/tweak](http://localhost:2304/tweak) (on the server node), where a simple UI and API documentation are provided for testing the PrePrint Service. Use `docker-compose down` to stop the service.
 
 ![PrePrint Service](/extras/PrePrintService.png)
 
 
-<!-- improve from here on -->
-## Configuration
+### 2. Install the PrePrintService Plugin
 
-Configure the plugin in the OctoPrint settings, ensuring that the URL for the PrePrint service is set correctly.
+Install the [**PrePrintService Plugin**](https://plugins.octoprint.org/plugins/preprintservice/) using the [Plugin Manager](http://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html) (under `Get More` with the name `PrePrintService Plugin`
+or manually using the URL on the Printer-Controller
 
-Return to the OctoPrint home UI, click the Slice button on uploaded STL models, and generate printable machine code using this Preprocessing-Plugin.
+Configure the plugin in the OctoPrint settings, ensuring that the URL for the PrePrint service (docker) is set correctly.
+Make also sure to use the correct URL of the Octoprint server and copy and paste the Octoprint API-key that can be found under settings, `API`.
+
+Save and return to the OctoPrint home UI, click the Slice button on uploaded STL models, and generate printable machine code using this Preprocessing-Plugin. If the small slicing button of the STL files loaded (right of the trash symbol) is deactivated, Octoprint can't reach the PrePrintService.
+
+![PrePrint Service Settings](/extras/settings3.png)
+
+
+### 3. (optional) Install Plugins to visualize models
+
+Plugins to visualize STL models and GCode improve the workflow.
+Therefore install the **GCode Viewer**() and **Slicer**(https://github.com/kennethjiang/OctoPrint-Slicer).
+
+As soon as installed and reloaded, the new Slicer-Tab can be used to load STL-files via the model's `slice`-button and
+sent to the PrePrintService with a Slicing Profile and Output Filename.
+
+![Octoprint Slicer](/extras/OctoPrint_navbar.png)
+
 
 
 ## Testing
@@ -76,7 +87,7 @@ To test the entire setup, follow these steps:
 
 1. Check if the docker service runs appropriately without errors: `docker-compose logs -f`
 
-1. Visit [localhost:2304/tweak](http://localhost:2304/tweak), select an STL model file, and perform an extended Tweak (auto-rotation) without slicing. The output should be an auto-rotated (binary) STL model. If not, check the Docker service logs using `docker-compose logs -f` in the directory where `docker-compose.yml` is located.
+1. Visit [localhost:2304/tweak](http://localhost:2304/tweak), select an STL model file and perform an extended Tweak (auto-rotation) without slicing. The output should be an auto-rotated (binary) STL model. If not, check the Docker service logs using `docker-compose logs -f` in the directory where `docker-compose.yml` is located.
 
 2. Repeat the process with slicing enabled. The resulting file should be a G-code file of the model. If not, check the Docker service logs using `docker-compose logs -f` in the same folder.
 
