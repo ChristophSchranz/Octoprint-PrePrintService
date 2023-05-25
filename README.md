@@ -25,6 +25,9 @@ The workflow consists of the following steps:
 
 Each step can be customized by adjusting the settings as described in the documentation.
 
+## Demo-Video
+
+[![OctoPrint's PrePrintService Plugin Tutorial](https://img.youtube.com/vi/Hvs_Gnh4Y5U/0.jpg))](https://youtu.be/Hvs_Gnh4Y5U)
 
 ## Requirements
 
