@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.8-bullseye
 LABEL maintainer="Christoph Schranz <christoph.schranz@salzburgresearch.at>"
 
 RUN mkdir /tmp || true
