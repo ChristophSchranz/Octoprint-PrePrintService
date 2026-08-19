@@ -40,7 +40,7 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
         return dict(url="http://127.0.0.1:2304/tweak",
                     octoprint_url="http://127.0.0.1:5000",  # mode without port is also possible
                     apikey="find API-key under API",
-                    tweak_option="tweak_extended_volume_returntweaked",
+                    tweak_option="tweak_extended_volume",
                     isurlok=False,
                     default_profile=os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "no_slicing"))
                                                 #  "default_slic3r_profile.ini"))
@@ -258,9 +258,16 @@ class PreprintservicePlugin(octoprint.plugin.SlicerPlugin,
             profile_path = self._settings.get(["default_profile"])
         profile_dict, display_name, description = self._load_profile(profile_path)
 
-        self._logger.info("Return tweaked model: {}".format(self._settings.get(["return_tweaked"])))  # boolean
+        return_tweaked = self._settings.get_boolean(["return_tweaked"]) or \
+            self._settings.get_boolean(["get_tweaked_stl"])
+        self._logger.info("Return tweaked model: {}".format(return_tweaked))  # boolean
         tweak_option = self._settings.get(["tweak_option"])  # "tweak_option": "tweak_extended_volume"
-        if self._settings.get(["return_tweaked"]):
+        # The auto-rotated model is only returned/saved when requested via the
+        # "Return and save auto-rotated model" checkbox, so make sure the
+        # _returntweaked suffix is derived solely from that checkbox.
+        if tweak_option.endswith("_returntweaked"):
+            tweak_option = tweak_option[:-len("_returntweaked")]
+        if return_tweaked:
             tweak_option += "_returntweaked"
         self._logger.info(f"Using Tweak option: '{tweak_option}'")
         
